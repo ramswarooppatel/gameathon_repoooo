@@ -9,16 +9,17 @@ import { drawScene } from './ui/scene.js';
 import { renderHud, renderTrust, renderProgress } from './ui/hud.js';
 import { progress } from './core/progress.js';
 import { renderCards } from './ui/cards.js';
+import { mulberry32 } from './core/rng.js';
 import { snapshot, impact, impactWithoutSnapshot, injectStyles } from './ui/coach.js';
 import { icon } from './app/icons.js';
 
 const $ = (id) => document.getElementById(id);
-let g, gh, ledger, last, timer = null;
+let g, gh, ledger, last, timer = null, history = [];      // history: deep snapshots of both games, one per day advance (memory only, never saved)
 
 async function start() {
   clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; $('end').hidden = true; $('start').hidden = true;
   const seed = +$('seed').value || 42;
-  g = createGame(seed); gh = createGame(seed, { crew: false }); impactBox.hidden = true;
+  g = createGame(seed); gh = createGame(seed, { crew: false }); impactBox.hidden = true; history = [];
   ledger = createLedger('fincrew-ledger'); ledger.clear();
   await db.startRun(seed, $('nick').value || 'Captain');
   $('log').textContent = '';
@@ -68,8 +69,24 @@ function decideAndEmit(id, idx, by = 'owner') {
   render();
 }
 
+// ---- rewind: one step back, by restoring deep snapshots of BOTH games (the engine is never run backwards) ----
+const snap = (game) => { const { rng, ...rest } = game; return { data: structuredClone(rest), rng: rng.state() }; };       // rng is a closure: copy its position, not the function
+const restore = (sn) => { const game = { ...structuredClone(sn.data), rng: mulberry32(0) }; game.rng.setState(sn.rng); return game; };
+const prev = Object.assign(document.createElement('button'), { id: 'prev', title: 'Undo the last day advance (decisions made after it are undone too)' });
+prev.append(icon('arrow-right', { size: 14 }), ' Previous Day'); prev.firstChild.style.cssText = 'display:inline-block;transform:scaleX(-1);vertical-align:-2px;margin-right:4px';
+$('next').before(prev);
+function rewind() {
+  const h = history.pop(); if (!h) return;
+  clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play';
+  const trust = g.s.trust;                                          // autonomy settings are controls, not simulation: keep what the Captain has set now
+  g = restore(h.game); gh = restore(h.ghost); g.s.trust = trust;
+  impactBox.hidden = true; render();
+}
+prev.onclick = rewind;
+
 function step() {
   if (g.s.over) return;
+  history.push({ game: snap(g), ghost: snap(gh) });
   const r = nextDay(g); nextDay(gh);
   if (r.cards.length) impactBox.hidden = true;                      // a new decision is open: clear the previous read-out so it cannot be mistaken for this one
   r.decided.forEach((d) => { bus.emit('card:decided', d); if (d.by !== 'owner' && !g.cards.length) showImpact(d.card, d.option, impactWithoutSnapshot(d.card, d.option, d.by)); });   // timeout/auto read-out only while nothing else is open
@@ -79,6 +96,7 @@ function step() {
 }
 
 function render() {
+  prev.disabled = !history.length;
   renderHud(g.s, gh.s);
   last = progress(g, gh); renderProgress(last);
   renderCards($('cards'), g.cards, g.s.day, (id, i) => decideAndEmit(id, i));

@@ -109,6 +109,7 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Decision impact from real engine state (payment day moved, fee paid, fraud blocked or lost, cash, business health before and after) | ✅ |
 | Existing lessons reused: "What you learned" is the lesson's own takeaway; "Open lesson" goes to Learn and remembers the lesson id | ✅ opening that exact lesson in Learn needs a small hook in `views3.js` (request in TODO.md) |
 | Ghost Twin reveal at the end: same business, same events, side-by-side health, cash, lowest cash, missed obligations, penalties, fraud; verdict is honest if the twin wins | ✅ (`scripts/lab_test.py`) |
+| Previous Day (rewind one day advance): deep snapshots of both games before each Next day, restored together with the random generator position; Auto-play pauses; New Run clears the history; autonomy settings are kept; the audit ledger stays append-only; nothing is saved to Supabase | ✅ (`scripts/lab_test.py`, with a negative control proving the generator restore matters) |
 | Note | `defaultOption` is what the engine applies when a card expires (for the fraud card it is "Pay anyway"), so it is NOT the recommendation. Treasurer's big-bill card always recommends "Negotiate +10 days" even when cash is fine; the coach says so honestly. Reordering that card's options is a possible follow-up. |
 
 ## Seed data

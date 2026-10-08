@@ -89,6 +89,8 @@
 
 - [Ram → Sumit] FYI Practice Lab coach (small, additive): Ram edited `ui/cards.js` and `lab.js`, added `ui/coach.js` (injects its own CSS, so `style.css` and `lab.html` were not touched). New elements you may restyle: `.story`, `.rec-why`, `.skill`, `.nothing`, `#impact.impact`, `#compare.compare`. Keep them and `python scripts/lab_test.py` (`LAB OK`) green. The impact panel's "Open lesson" link goes to `index.html#learn` and stores the lesson id in `localStorage['myf-suggest-lesson']`; if you want Learn to open or highlight that lesson, read that key in `views3.js` (`learn`) and clear it after use.
 
+- [Ram → Sumit] FYI Practice Lab: a secondary `#prev` button ("Previous Day") is created by `lab.js` before `#next` in `.ctl`; restyle it if you like but keep the id and the label. `core/rng.js` gained `state()` and `setState()` for rewind.
+
 ## Bugs
 - (none yet) — format: `B1 (reporter) steps → expected/actual → owner → status`
 
