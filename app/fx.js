@@ -1,5 +1,6 @@
 // Delight layer: confetti, count-up numbers, scratch card. No dependencies.
 export function confetti(n = 110) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const c = Object.assign(document.createElement('canvas'), { width: innerWidth, height: innerHeight });
   c.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:50';
   document.body.append(c);
@@ -12,6 +13,97 @@ export function confetti(n = 110) {
     if (++t < 120) requestAnimationFrame(f); else c.remove();
   })();
 }
+
+// Floating XP Pop effect near click/target
+export function spawnXpPop(xp, x, y) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pop = document.createElement('div');
+  pop.className = 'xp-floating-pop';
+  pop.textContent = `+${xp} XP`;
+  pop.style.left = `${Math.max(10, Math.min(innerWidth - 70, (x ?? innerWidth / 2) - 30))}px`;
+  pop.style.top = `${Math.max(10, (y ?? innerHeight / 2) - 20)}px`;
+  document.body.append(pop);
+  setTimeout(() => pop.remove(), 1200);
+}
+
+// Fullscreen Level Up Celebratory Modal with Dynamic Canvas Share Card
+export function showLevelUpModal(level, xp, profileName = 'Oxro Labs') {
+  const existing = document.getElementById('lvl-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'lvl-modal';
+  overlay.className = 'overlay lvl-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal lvl-modal-card';
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 440;
+  canvas.height = 220;
+  canvas.className = 'lvl-share-canvas';
+
+  // Render dynamic share card onto canvas
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 440, 220);
+  g.addColorStop(0, '#0a2218');
+  g.addColorStop(1, '#05120d');
+  ctx.fillStyle = g;
+  ctx.roundRect ? ctx.roundRect(0, 0, 440, 220, 16) : ctx.rect(0, 0, 440, 220);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#19c37d';
+  ctx.stroke();
+
+  // Branding & Tier
+  ctx.fillStyle = '#6ee7a8';
+  ctx.font = 'bold 12px Inter, sans-serif';
+  ctx.fillText('OXRO LABS · FINANCE DESK', 28, 36);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 24px Inter, sans-serif';
+  ctx.fillText(`Level ${level.n} · ${level.name}`, 28, 78);
+
+  ctx.fillStyle = '#8aa398';
+  ctx.font = '14px Inter, sans-serif';
+  ctx.fillText(`Achieved with ${xp.toLocaleString('en-IN')} Lifetime XP`, 28, 110);
+  ctx.fillText(`Organization: ${profileName}`, 28, 136);
+
+  // Status Chip on canvas
+  ctx.fillStyle = 'rgba(25, 195, 125, 0.2)';
+  ctx.fillRect(28, 160, 130, 28);
+  ctx.fillStyle = '#19c37d';
+  ctx.font = 'bold 12px Inter, sans-serif';
+  ctx.fillText('FINANCE CERTIFIED', 38, 178);
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'pri';
+  dlBtn.textContent = 'Download Share Card';
+  dlBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.download = `oxro-level-${level.n}-${Date.now()}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Continue to Desk';
+  closeBtn.onclick = () => overlay.remove();
+
+  modal.append(
+    Object.assign(document.createElement('h2'), { textContent: 'Level Up Complete!' }),
+    Object.assign(document.createElement('p'), { className: 'mu', textContent: `Congratulations! You unlocked Level ${level.n}: ${level.name}.` }),
+    canvas,
+    Object.assign(document.createElement('div'), { className: 'row' }, dlBtn, closeBtn)
+  );
+
+  overlay.append(modal);
+  document.body.append(overlay);
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    confetti(120);
+  }
+}
+
 
 // Animate [data-count] numbers from their previous value (remembered per data-key) to the new one.
 const last = new Map();
@@ -47,6 +139,77 @@ export function scratch(canvas, onReveal) {
   canvas.onpointermove = wipe; canvas.onpointerup = () => { down = false; };
 }
 
+// 3D Tilt effect for Hero Business Card (respects prefers-reduced-motion)
+export function tilt(cardEl) {
+  if (!cardEl) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let bounds;
+  const onMove = (e) => {
+    bounds ||= cardEl.getBoundingClientRect();
+    const mouseX = e.clientX - bounds.left;
+    const mouseY = e.clientY - bounds.top;
+    const xPct = (mouseX / bounds.width - 0.5) * 2; // -1 to 1
+    const yPct = (mouseY / bounds.height - 0.5) * 2; // -1 to 1
+
+    const rotateX = -yPct * 12; // degrees
+    const rotateY = xPct * 14;  // degrees
+
+    cardEl.style.transform = `perspective(600px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-2px)`;
+  };
+
+  const onEnter = () => {
+    bounds = cardEl.getBoundingClientRect();
+    cardEl.style.transition = 'transform 0.1s ease-out';
+  };
+
+  const onLeave = () => {
+    cardEl.style.transition = 'transform 0.4s ease-out';
+    cardEl.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) translateY(0)';
+  };
+
+  cardEl.addEventListener('mousemove', onMove);
+  cardEl.addEventListener('mouseenter', onEnter);
+  cardEl.addEventListener('mouseleave', onLeave);
+}
+
+// Stories Auto-Advance Carousel with Progress Fill and Pause-on-Hover
+export function autoAdvanceStories(container) {
+  if (!container) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let timer = null;
+  let isPaused = false;
+
+  const startCycle = () => {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      if (isPaused) return;
+      const cards = container.querySelectorAll('.story');
+      if (!cards.length) return;
+      
+      const scrollLeft = container.scrollLeft;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const nextScroll = scrollLeft + 220;
+      
+      if (scrollLeft >= maxScroll - 10) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        container.scrollTo({ left: nextScroll, behavior: 'smooth' });
+      }
+    }, 4500);
+  };
+
+  container.addEventListener('mouseenter', () => { isPaused = true; });
+  container.addEventListener('mouseleave', () => { isPaused = false; });
+  container.addEventListener('focusin', () => { isPaused = true; });
+  container.addEventListener('focusout', () => { isPaused = false; });
+  container.addEventListener('touchstart', () => { isPaused = true; }, { passive: true });
+  container.addEventListener('touchend', () => { isPaused = false; });
+
+  startCycle();
+}
+
 // Sound + haptics (off switch remembered in localStorage).
 let ac;
 export const muted = () => localStorage.getItem('myf-mute') === '1';
@@ -64,3 +227,4 @@ export function sfx(kind) {
     navigator.vibrate?.(kind === 'lvl' ? [30, 40, 60] : 15);
   } catch { /* audio blocked until first user gesture */ }
 }
+

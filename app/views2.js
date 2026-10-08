@@ -37,6 +37,69 @@ export function approvals(S, A) {
 }
 
 // ---------------------------------------------------------------- Reports
+function comboChart(P) {
+  const W = 620, H = 200, bw = 22, g = W / P.length;
+  const maxVal = Math.max(1, ...P.flatMap((p) => [p.income, p.spend, Math.abs(p.net)]));
+  
+  // Dual representation: Income (Green Bar) vs Spend (Grey Bar) with Net Profit accent line
+  const netPoints = P.map((p, i) => {
+    const x = i * g + g / 2;
+    // Map net profit vertically where zero is midway if negative, or scaled
+    const y = H - 24 - ((p.net + maxVal) / (maxVal * 2)) * (H - 50);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  let s = `<svg viewBox="0 0 ${W} ${H + 30}" class="chart combo-chart" role="img" aria-label="Monthly P&L Net Profit Combo Chart">
+    <title>Monthly P&L Performance (Income vs Spend & Net Profit)</title>
+    <desc>Vertical bars represent gross income and spend, overlaid with a connected net profit trend line.</desc>`;
+
+  // Grid lines
+  for (let l = 1; l <= 3; l++) {
+    const y = Math.round((H / 4) * l);
+    s += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="var(--line-subtle)" stroke-dasharray="3 3"/>`;
+  }
+
+  // Zero baseline for Net line
+  const zeroY = H - 24 - (maxVal / (maxVal * 2)) * (H - 50);
+  s += `<line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 2"/>`;
+
+  // Bars for Income & Spend
+  P.forEach((p, i) => {
+    const x = i * g + g / 2;
+    const hi = Math.max(3, (p.income / maxVal) * (H - 50));
+    const hs = Math.max(3, (p.spend / maxVal) * (H - 50));
+    const monthLabel = p.month.slice(5) + '/' + p.month.slice(2, 4);
+
+    s += `<g class="chart-col" tabindex="0" aria-label="${p.month}: Income ₹${Math.round(p.income)}, Spend ₹${Math.round(p.spend)}, Net ₹${Math.round(p.net)}">
+      <rect class="bar-income" x="${x - bw - 2}" y="${H - 24 - hi}" width="${bw}" height="${hi}" rx="4" fill="var(--acc)"/>
+      <rect class="bar-spend" x="${x + 2}" y="${H - 24 - hs}" width="${bw}" height="${hs}" rx="4" fill="#5c756a"/>
+      <text x="${x}" y="${H + 18}" text-anchor="middle" fill="var(--mu)" font-size="11" font-weight="500">${monthLabel}</text>
+    </g>`;
+  });
+
+  // Net Profit Line & Dots
+  s += `<polyline fill="none" stroke="var(--acc2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${netPoints}" class="net-trend-line"/>`;
+
+  P.forEach((p, i) => {
+    const x = i * g + g / 2;
+    const y = H - 24 - ((p.net + maxVal) / (maxVal * 2)) * (H - 50);
+    s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#ffffff" stroke="var(--acc2)" stroke-width="2"/>`;
+  });
+
+  s += '</svg>';
+
+  const legend = h('div', { class: 'chart-legend' },
+    h('span', { class: 'leg-item leg-in' }, h('i', {}), 'Income (Sales)'),
+    h('span', { class: 'leg-item leg-out' }, h('i', {}), 'Total Spend'),
+    h('span', { class: 'leg-item leg-net-line' }, h('i', { style: 'background:var(--acc2);height:3px;' }), 'Net Profit Trend'),
+    h('span', { class: 'leg-net mu small' }, `6M Net: ${inr(P.reduce((a, c) => a + c.net, 0))}`)
+  );
+
+  const container = h('div', { class: 'chart-box combo-chart-container' });
+  container.innerHTML = legend.outerHTML + s;
+  return container;
+}
+
 export function reports(S) {
   const months = [5, 4, 3, 2, 1, 0].map((i) => prevMonth(today().slice(0, 7), i)), rows = S.sum.rows, P = pnl(rows, months);
   const cats = [...new Set(P.flatMap((p) => Object.keys(p.byCat)))];
@@ -45,19 +108,37 @@ export function reports(S) {
   const top = (dir) => { const t = topParties(rows, dir); return t.length ? table(['Party', 'Total'], t.map((x) => h('tr', {}, td(x.party), td(inr(x.amount), true))), [1]) : empty('No data yet.'); };
   const gst = months.map((m) => ({ m, g: gstFor(rows, m) }));
   const csv = () => download(`pnl-${today()}.csv`, ['Month,Income,Spend,Net', ...P.map((p) => `${p.month},${p.income},${p.spend},${p.net}`)].join(String.fromCharCode(10)));
+  
+  // Print-only Business Header
+  const printHeader = h('div', { class: 'print-report-header' },
+    h('div', { class: 'print-biz-name' }, S.profile.name || 'Oxro Labs · Finance Desk'),
+    h('div', { class: 'print-biz-meta' },
+      h('span', {}, `GSTIN: ${S.profile.gstin || 'Unregistered'}`),
+      h('span', {}, `Generated: ${today()}`)
+    )
+  );
+
   return h('div', { class: 'stack' },
-    h('div', { class: 'row noprint' }, h('button', { onclick: () => window.print() }, 'Print / Save as PDF'), h('button', { onclick: csv }, 'Export P&L (CSV)')),
-    card('Profit & loss (accrual, excl. GST)', table(['', ...months.map((m) => m.slice(2))], [
-      h('tr', {}, td('Income'), ...P.map((p) => td(inr(p.income), true))),
-      ...cats.map((c) => h('tr', { class: 'sub' }, td('  ' + c), ...P.map((p) => td(inr(p.byCat[c] || 0), true)))),
-      h('tr', {}, td('Total spend'), ...P.map((p) => td(inr(p.spend), true))),
-      h('tr', { class: 'tot' }, td('Net profit'), ...P.map((p) => h('td', { class: 'n' }, money(p.net)))),
-    ], months.map((_, i) => i + 1))),
+    printHeader,
+    h('div', { class: 'row noprint' },
+      h('button', { class: 'pri', onclick: () => window.print() }, '🖨 Print / Save as PDF'),
+      h('button', { onclick: csv }, 'Export P&L (CSV)')
+    ),
+    card('Profit & loss (accrual, excl. GST)',
+      comboChart(P),
+      table(['', ...months.map((m) => m.slice(2))], [
+        h('tr', {}, td('Income'), ...P.map((p) => td(inr(p.income), true))),
+        ...cats.map((c) => h('tr', { class: 'sub' }, td('  ' + c), ...P.map((p) => td(inr(p.byCat[c] || 0), true)))),
+        h('tr', {}, td('Total spend'), ...P.map((p) => td(inr(p.spend), true))),
+        h('tr', { class: 'tot' }, td('Net profit'), ...P.map((p) => h('td', { class: 'n mono' }, money(p.net)))),
+      ], months.map((_, i) => i + 1))
+    ),
     h('div', { class: 'grid2' }, card('Receivables aging', ag('in')), card('Payables aging', ag('out'))),
     h('div', { class: 'grid2' }, card('Top customers', top('in')), card('Top vendors', top('out'))),
     card('GST by month', table(['Month', 'Output tax', 'Input credit', 'Net payable', 'Credit at risk'], gst.map(({ m, g }) => h('tr', {}, td(m), td(inr(g.output.cgst + g.output.sgst + g.output.igst), true), td(inr(g.itc.cgst + g.itc.sgst + g.itc.igst), true), td(inr(g.net.total), true), td(inr(g.itcAtRisk), true))), [1, 2, 3, 4]),
       h('p', { class: 'small mu' }, 'Planning estimates. Verify with your Chartered Accountant before filing.')));
 }
+
 
 // ---------------------------------------------------------------- Team
 export function team(S, A) {
