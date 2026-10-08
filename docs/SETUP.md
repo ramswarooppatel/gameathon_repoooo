@@ -21,7 +21,7 @@ The main app is `index.html` (`app/`): sign in, transactions, GST & compliance, 
 
 ## Groq (optional)
 1. console.groq.com → API key.
-2. Local: copy `.env.example` to `.env`, fill `GROQ_API_KEY`, run `npm run dev` (Netlify CLI serves the site and `/api/groq`; restart it after changing `.env`). A plain static server (`npx serve`, `python -m http.server`) has no `/api/groq`, so the AI shows its offline text and the console says why. Models differ per Groq account: the proxy tries `GROQ_MODEL`, then `openai/gpt-oss-20b`, `openai/gpt-oss-120b`, `qwen/qwen3.8-27b`, then the Llama models, and uses the first one your key can access. `python scripts/ai_test.py` checks the whole path with your key.
+2. Local: copy `.env.example` to `.env`, fill `GROQ_API_KEY`, then run **`npm start`** (site plus AI proxy at http://localhost:3000, no Netlify CLI needed) or `npm run dev` (Netlify CLI serves the site and `/api/groq`; restart it after changing `.env`). A plain static server (`npx serve`, `python -m http.server`) has no `/api/groq`, so the AI shows its offline text and the console says why. Models differ per Groq account: the proxy tries `GROQ_MODEL`, then `openai/gpt-oss-20b`, `openai/gpt-oss-120b`, `qwen/qwen3.8-27b`, then the Llama models, and uses the first one your key can access. `python scripts/ai_test.py` checks the whole path with your key.
 3. Deploy: Netlify → Site settings → Environment variables → `GROQ_API_KEY`, `GROQ_MODEL`.
 Without a key the game uses template text (the "AI wording" toggle and Ask-the-CFO just fall back).
 

@@ -10,7 +10,7 @@ try:
     with sync_playwright() as p:
         b = p.chromium.launch(channel='msedge'); ctx = b.new_context(viewport={'width': 1440, 'height': 900}, service_workers='block')
         ctx.add_init_script("localStorage.setItem('myf-notice','1'); localStorage.setItem('myf-theme','dark');")
-        pg = ctx.new_page(); errs = []; pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg = ctx.new_page(); errs = []; pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'status of 501' not in m.text else None)   # a static test server has no /api/groq (POST 501): the app falls back, which is expected here; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('dialog', lambda d: d.dismiss()); ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin='http://localhost:3128')
         pg.goto('http://localhost:3128/index.html'); pg.wait_for_selector('#auth:not([hidden]) button'); pg.get_by_role('button', name='Continue in demo mode').click()
         pg.wait_for_selector('#app:not([hidden]) #view > *', state='attached'); pg.wait_for_timeout(800)
@@ -48,6 +48,12 @@ try:
         check('palette navigates', 'Reports' in (pg.text_content('main h2') or ''))
         # theme toggle persists
         pg.locator('[data-theme-toggle]').first.click(); check('theme toggled', pg.evaluate("document.documentElement.dataset.theme") == 'light')
+        # real keystrokes must reach the AI CFO box (an on* handler that returned false once swallowed every key)
+        pg.evaluate("location.hash='insights'"); pg.wait_for_timeout(500)
+        box = pg.get_by_placeholder('Ask anything'); box.click(); pg.keyboard.type('Can I afford a hire?', delay=15)
+        check('typing works in the AI CFO box', box.input_value() == 'Can I afford a hire?')
+        pg.keyboard.press('Enter'); pg.wait_for_timeout(600)
+        check('Enter sends it and clears the box', box.input_value() == '' and pg.locator('.msg.me', has_text='Can I afford a hire?').count() == 1)
         check('no console errors', not errs)
         if errs: print('console:', sorted(set(errs))[:3])
         b.close()

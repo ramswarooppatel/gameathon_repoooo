@@ -1,4 +1,4 @@
-// Test helper: static files + the real Groq proxy function (netlify/functions/groq.js), no Netlify CLI needed. Usage: node scripts/ai_server.mjs <port>
+// Static files + the real Groq proxy function (netlify/functions/groq.js), no Netlify CLI needed. `npm start` serves http://localhost:3000 with the AI working; also used by scripts/ai_test.py. Usage: node scripts/ai_server.mjs <port>
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (fs.existsSync(path.join(root, '.env'))) for (const l of fs.readFileSync(path.join(root, '.env'), 'utf8').split(/\r?\n/)) { const i = l.indexOf('='); if (i > 0 && !l.startsWith('#')) process.env[l.slice(0, i).trim()] ??= l.slice(i + 1).trim().replace(/^["']|["']$/g, ''); }

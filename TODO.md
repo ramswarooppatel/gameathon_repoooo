@@ -97,6 +97,8 @@
 
 - [Ram → Sumit] FYI Practice Lab redesigned for simplicity at Ram's request: `lab.html` rewritten (same element ids) and styled by the new `lab.css` (light/dark via `data-theme`); `style.css` is no longer linked and can be deleted when you are happy. `ui/coach.js` still injects its own small CSS. Please review `lab.css` in your design pass (contrast, 44 px targets, phone layout) and edit it rather than `style.css`. Keep ids and the dock buttons; `python scripts/lab_test.py` and `scripts/nav_test.py` must stay green.
 
+- [Ram → Sumit] FYI bug fix in your `views.js`: the AI CFO box handler was `q.onkeydown = (e) => e.key === 'Enter' && send();`, which returns `false` for every other key and cancels the keystroke, so nothing could be typed. Now a block body. Rule for all views: an `on*` property handler must never return `false` by accident (use `{ ... }`); `flow_test.py` types into the box with real keystrokes to guard it.
+
 ## Bugs
 - (none yet) — format: `B1 (reporter) steps → expected/actual → owner → status`
 

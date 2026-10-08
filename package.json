@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx netlify-cli dev",
+    "start": "node scripts/ai_server.mjs 3000",
     "serve": "npx serve .",
     "check": "node core/selfcheck.js",
     "sync-env": "node scripts/sync-env.mjs",

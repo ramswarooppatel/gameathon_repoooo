@@ -690,7 +690,7 @@ function insights(S, A) {
     await A.award('ai_used', today(), 5, 'Asked the AI CFO');
   };
   const send = () => { if (q.value.trim()) { say(q.value, `With ${inr(s.cash)} cash and ${inr(s.out30)} due out in 30 days against ${inr(s.in30)} coming in, keep cash above one payroll plus the next GST payment before committing new spend.`); q.value = ''; } };
-  q.onkeydown = (e) => e.key === 'Enter' && send();
+  q.onkeydown = (e) => { if (e.key === 'Enter') send(); };        // never return false from an on* handler: it cancels the keystroke (this used to block all typing)
   const slip = s.cash - s.out30, base = s.cash + s.in30 - s.out30;
   return h('div', { class: 'grid2' },
     card('AI CFO', h('div', { class: 'row' }, ...['Explain my month', 'What should I do this week?', 'Can I afford a new hire?'].map((p) => h('button', { onclick: () => say(p, `${inr(s.cash)} cash; ${inr(s.receivable)} to collect; ${inr(s.gst.net.total)} GST payable. ${S.alerts[0]?.text || 'No urgent items.'}`) }, p))),
