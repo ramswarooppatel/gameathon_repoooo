@@ -9,7 +9,7 @@
 <header class="site-head"><div class="wrap">
   <a class="brand" href="../welcome.html"><span class="logo"><img src="../public/logo-128.png" alt="" width="36" height="36"></span><span>Oxro Labs Finance Desk<small>by Mind Your Funds</small></span></a>
   <nav class="site-nav" aria-label="Primary"><a href="../welcome.html#different">Why it is different</a><a href="../welcome.html#features">Features</a><a href="../welcome.html#security">Security</a><a href="../welcome.html#faq">FAQ</a></nav>
-  <div class="top-actions"><a class="btn pri" href="../index.html">Open Finance Desk</a></div>
+  <div class="top-actions"><a class="btn" id="back" href="../index.html" aria-label="Back"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform:scaleX(-1);vertical-align:-2px;margin-right:4px"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>Back</a> <a class="btn pri" href="../index.html">Open Finance Desk</a></div>
 </div></header>
 <main id="view">
 <section class="legal"><div class="wrap">
@@ -27,4 +27,5 @@
   <p class="legal-note">&copy; 2026 Oxro Labs. Figures shown are planning estimates and not tax, legal or financial advice. See the <a style="display:inline" href="../legal/disclaimer.html">Disclaimer</a>.</p>
 </div></footer>
 <script type="module" src="../app/extras.js"></script>
+<script>document.getElementById('back').addEventListener('click',function(e){if(history.length>1&&document.referrer.indexOf(location.origin)===0){e.preventDefault();history.back();}});</script>
 </body></html>

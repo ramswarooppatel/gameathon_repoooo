@@ -85,7 +85,7 @@ function rewind() {
 prev.onclick = rewind;
 
 function step() {
-  if (g.s.over) return;
+  if (!g || g.s.over) return;                                      // the first game exists only after db.init() has finished
   history.push({ game: snap(g), ghost: snap(gh) });
   const r = nextDay(g); nextDay(gh);
   if (r.cards.length) impactBox.hidden = true;                      // a new decision is open: clear the previous read-out so it cannot be mistaken for this one
@@ -144,6 +144,12 @@ $('ask').onclick = async () => { $('a').textContent = '…'; $('a').textContent 
 function render0() { g = createGame(42); gh = createGame(42, { crew: false }); ledger = createLedger('fincrew-ledger'); renderTrust(g.s); render(); }
 (function loop(t) { if (g) drawScene($('scene').getContext('2d'), g.s, g.cards, t); requestAnimationFrame(loop); })(0);
 injectStyles();
+// Go Back on the two overlays: closes the overlay only. It never starts or resets a run.
+for (const id of ['start', 'end']) {
+  const modal = $(id).querySelector('.modal'), back = Object.assign(document.createElement('button'), { type: 'button', className: 'go-back', style: 'margin-top:10px', onclick: () => { $(id).hidden = true; } });
+  const ic = icon('arrow-right', { size: 14 }); ic.style.cssText = 'display:inline-block;transform:scaleX(-1);vertical-align:-2px;margin-right:4px'; back.append(ic, 'Go Back');
+  modal.append(back);
+}
 $('begin').onclick = start;
 await db.init();
 render0();

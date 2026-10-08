@@ -7,6 +7,7 @@ UPDATED = '8 October 2026'
 FILL = lambda s: f'<span class="fill">[{s}]</span>'
 CO = 'Oxro Labs'
 
+BACK = """<script>document.getElementById('back').addEventListener('click',function(e){if(history.length>1&&document.referrer.indexOf(location.origin)===0){e.preventDefault();history.back();}});</script>"""
 EARLY = """<script>(function(){try{var p=localStorage.getItem('myf-theme')||'system',l=p==='light'||(p==='system'&&matchMedia('(prefers-color-scheme: light)').matches);var d=document.documentElement;d.dataset.theme=l?'light':'dark';d.dataset.fs=localStorage.getItem('myf-fs')||'md';d.dataset.contrast=localStorage.getItem('myf-contrast')||'normal';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>"""
 
 
@@ -23,7 +24,7 @@ def page(title, desc, body, base='', active=''):
 <header class="site-head"><div class="wrap">
   <a class="brand" href="{base}welcome.html"><span class="logo"><img src="{base}public/logo-128.png" alt="" width="36" height="36"></span><span>{CO} Finance Desk<small>by Mind Your Funds</small></span></a>
   <nav class="site-nav" aria-label="Primary">{nav}</nav>
-  <div class="top-actions"><a class="btn pri" href="{base}index.html">Open Finance Desk</a></div>
+  <div class="top-actions"><a class="btn" id="back" href="{base}index.html" aria-label="Back"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform:scaleX(-1);vertical-align:-2px;margin-right:4px"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>Back</a> <a class="btn pri" href="{base}index.html">Open Finance Desk</a></div>
 </div></header>
 <main id="view">
 {body}
@@ -38,6 +39,7 @@ def page(title, desc, body, base='', active=''):
   <p class="legal-note">&copy; 2026 {CO}. Figures shown are planning estimates and not tax, legal or financial advice. See the <a style="display:inline" href="{base}legal/disclaimer.html">Disclaimer</a>.</p>
 </div></footer>
 <script type="module" src="{base}app/extras.js"></script>
+{BACK}
 </body></html>
 """
 

@@ -112,6 +112,14 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Previous Day (rewind one day advance): deep snapshots of both games before each Next day, restored together with the random generator position; Auto-play pauses; New Run clears the history; autonomy settings are kept; the audit ledger stays append-only; nothing is saved to Supabase | ✅ (`scripts/lab_test.py`, with a negative control proving the generator restore matters) |
 | Note | `defaultOption` is what the engine applies when a card expires (for the fraud card it is "Pay anyway"), so it is NOT the recommendation. Treasurer's big-bill card always recommends "Negotiate +10 days" even when cash is fine; the coach says so honestly. Reordering that card's options is a possible follow-up. |
 
+## Back navigation (`app/main.js`, `lab.js`, `scripts/gen_site.py`)
+| Area | Status |
+|------|--------|
+| In-app pages: "Back" above the title of every page except Today; reuses browser history (depth kept in `history.state`), falls back to Today in place on deep links, so Back never leaves the app or shows a blank page; a screen that has its own Back (invoice form) keeps only that one | ✅ (`scripts/nav_test.py`) |
+| Practice Lab: Start and End overlays get "Go Back" (closes the overlay only; no start, no reset); the existing "Finance Desk" link stays | ✅ |
+| Landing and legal pages: Back link (history when you came from another page, otherwise the app) | ✅ |
+| Dialogs: already have Close, Cancel or X; the `?` shortcuts help has none yet (Esc works), left for the dialog unification | ⬜ |
+
 ## Seed data
 `supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).
 

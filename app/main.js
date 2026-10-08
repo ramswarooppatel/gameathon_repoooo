@@ -16,7 +16,7 @@ import * as V6 from './views6.js';
 import { payslipPdf } from './payslip.js';
 import { validateEmployee, buildRun, entriesFor, paidOnTime, payrollStreak, payrollReadiness, registerCsv, bankCsv, ecrText, monthName } from '../workspace/payroll.js';
 import { countUp, muted, setMuted } from './fx.js';
-import { iconSvg } from './icons.js';
+import { iconSvg, icon } from './icons.js';
 import { dueMonths } from './recurring.js';
 
 const S = { employees: [], runs: [], payslips: [], rewards: [], redemptions: [], spendable: 0, invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
@@ -534,10 +534,21 @@ function render() {
   if (view === 'team' && !S.can('admin')) { view = 'dashboard'; location.hash = 'dashboard'; }
   chrome();
   const root = $('#view'); root.textContent = '';
-  root.append(h('h2', {}, TITLES[view] || ''), (ALL[view] || ALL.dashboard)(S, A));
+  const page = (ALL[view] || ALL.dashboard)(S, A), hasOwnBack = [...page.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Back');   // a page that already has its own Back (invoice form) keeps just that one
+  root.append(...[view !== 'today' && !hasOwnBack && backButton(), h('h2', {}, TITLES[view] || ''), page].filter(Boolean));
   countUp(root);
 }
-window.addEventListener('hashchange', () => { view = location.hash.slice(1) || 'today'; render(); window.scrollTo({ top: 0 }); });
+// Back: hash routing already writes browser history, so we reuse it. history.state remembers how deep we are, which lets Back
+// return to the previous page when there is one and otherwise go Today in place (never leaving the app, never a blank page).
+let depth = history.state?.i ?? 0, goingHome = false;
+if (history.state?.i == null) history.replaceState({ i: 0 }, '');
+const goBack = () => { if (depth > 0) history.back(); else { goingHome = true; location.replace('#today'); } };
+const backButton = () => h('button', { type: 'button', class: 'page-back', style: 'margin:0 0 12px', 'aria-label': 'Back to the previous page', title: 'Back', onclick: goBack }, icon('arrow-right', { size: 14, cls: 'flip' }), ' Back');
+window.addEventListener('hashchange', () => {
+  if (goingHome) { goingHome = false; depth = 0; history.replaceState({ i: 0 }, ''); }
+  else if (history.state?.i == null) history.replaceState({ i: ++depth }, ''); else depth = history.state.i;
+  view = location.hash.slice(1) || 'today'; render(); window.scrollTo({ top: 0 });
+});
 
 // ---- auth + workspace setup + boot ---------------------------------------------
 function modal(...kids) { const box = $('#auth'); box.hidden = false; $('#app').hidden = true; const m = box.querySelector('.modal'); m.textContent = ''; m.append(h('span', { class: 'logo big' }, h('img', { src: 'public/logo-256.png', width: 90, height: 90, alt: '' })), ...kids); }
