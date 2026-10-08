@@ -6,7 +6,8 @@ export const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maxim
 export function h(tag, props = {}, ...kids) {
   const e = document.createElement(tag), { class: c, ...rest } = props;
   if (c) e.className = c;
-  for (const [k, v] of Object.entries(rest)) k.startsWith('data-') ? e.setAttribute(k, v) : (e[k] = v);
+  const ATTR = /^(aria-|data-)|^(role|tabindex|list|for|style)$/;   // these are HTML attributes, not DOM properties
+  for (const [k, v] of Object.entries(rest)) { if (v === undefined || v === null || v === false) continue; ATTR.test(k) ? e.setAttribute(k, v === true ? '' : v) : (e[k] = v); }
   e.append(...kids.flat().filter((k) => k !== false && k != null));
   return e;
 }

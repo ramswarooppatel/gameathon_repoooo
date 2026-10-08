@@ -22,7 +22,7 @@ try:
         pg.fill('#s-name', 'Oxro Labs'); pg.fill('#s-gstin', '27AABCF1234F1Z4'); pg.fill('#s-goal', '250000')
         pg.evaluate("document.getElementById('s-goal').form.requestSubmit()"); pg.wait_for_timeout(900)
         pg.get_by_role('button', name='Load sample data').click(); pg.wait_for_timeout(5000)
-        for name in ['dashboard', 'transactions', 'parties', 'approvals', 'compliance', 'reports', 'insights', 'rewards', 'audit', 'team', 'settings']:
+        for name in ['today', 'planner', 'learn', 'dashboard', 'transactions', 'parties', 'approvals', 'compliance', 'reports', 'insights', 'rewards', 'audit', 'team', 'settings']:
             pg.evaluate(f"location.hash='{name}'"); pg.evaluate('window.scrollTo(0,0)'); pg.wait_for_timeout(1800)
             pg.screenshot(path=os.path.join(out, f'{name}.png'), full_page=(width > 600 and name in ('reports', 'settings')))
         print('errors:', sorted(set(errs))[:4]); b.close()

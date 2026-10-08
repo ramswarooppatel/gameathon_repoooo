@@ -59,6 +59,25 @@ assert.equal(topParties(W.rows, 'out')[0].party, 'B');
 const html = invoiceHtml({ ...W.rows[0], party: '<script>x</script>' }, { name: 'Oxro Labs', gstin: null }, null);
 assert.ok(html.includes('&lt;script&gt;') && !html.includes('<script>x'));
 
+// Planner: forecast, scenarios, pay priority, collection ladder, budgets
+import { forecast, payPriority, collectionPlan, budgetStatus, customerDelays } from '../workspace/planner.js';
+import { enrich } from '../workspace/calc.js';
+const T = '2026-10-08';
+const mk = (o) => enrich({ id: Math.random(), gst_rate: 0, supply: 'intra', date: '2026-09-01', number: null, gstin: null, paid_date: null, ...o });
+const PR = [mk({ kind: 'sale', party: 'A', taxable: 118000, due_date: '2026-10-18' }), mk({ kind: 'purchase', party: 'V', taxable: 59000, due_date: '2026-10-13' })];
+const F = forecast(PR, { today: T, cash: 100000, horizon: 12 }, 'base');
+assert.equal(F.min.cash, 41000); assert.equal(F.endCash, 159000); assert.equal(F.firstNegative, null);
+assert.equal(forecast(PR, { today: T, cash: 100000, horizon: 12 }, 'late').endCash, 41000);   // customer pays 15 days later: nothing arrives in 12 days
+const OVD = [mk({ kind: 'sale', party: 'Slow', taxable: 1000, due_date: '2026-09-20', paid_date: '2026-10-05' })];
+assert.equal(Math.round(customerDelays(OVD).of('Slow')), 15);
+const PP = payPriority([mk({ kind: 'purchase', party: 'A', taxable: 30000, due_date: '2026-10-10' }), mk({ kind: 'purchase', party: 'B', taxable: 40000, due_date: '2026-10-09' }), mk({ kind: 'purchase', party: 'C', taxable: 20000, due_date: '2026-10-01' })], 50000, T, 0);
+assert.deepEqual(PP.map((x) => x.row.party), ['C', 'B', 'A']); assert.equal(PP[0].action, 'pay'); assert.equal(PP[1].action, 'cash-short');
+const ago = (n) => new Date(Date.parse(T) - n * 86400000).toISOString().slice(0, 10);
+const CP = collectionPlan([3, 20, 45, 90].map((n) => mk({ kind: 'sale', party: 'P' + n, taxable: 1000, due_date: ago(n) })), T);
+assert.deepEqual(CP.map((c) => c.stage.key).sort(), ['call', 'escalate', 'firm', 'friendly']);
+const BS = budgetStatus([mk({ kind: 'expense', party: 'R', taxable: 25000, category: 'Rent', date: '2026-10-01' })], { Rent: 20000, Travel: 5000 }, '2026-10', T);
+assert.equal(BS.find((b) => b.category === 'Rent').status, 'over'); assert.equal(BS.find((b) => b.category === 'Travel').actual, 0);
+
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {
   const g = createGame(42, { crew });

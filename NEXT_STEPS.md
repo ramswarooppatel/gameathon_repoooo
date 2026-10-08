@@ -4,7 +4,7 @@ This is the working plan from "code on my laptop" to "demo-ready, data in Supaba
 
 ## 0. What exists today
 - **Finance manager** (`index.html`, `app/`): transactions, GST (CGST/SGST/IGST + input credit), filing calendar, alerts with one-click actions, AI CFO, audit trail, sign-in, demo mode.
-- **Engagement layer** (the Slice / FamPay-style feel, on real finance habits): business card hero, story cards, animated numbers, daily quests, scratch-card reward, XP + 7 levels, streaks, 11 badges, monthly goal ring, leaderboard, confetti, mobile bottom navigation.
+- **Engagement layer** (the Slice / FamPay-style feel, on real finance habits): business card hero, story cards, animated numbers, daily quests, scratch-card reward, XP + 7 levels, streaks, 14 badges, monthly goal ring, leaderboard, confetti, mobile bottom navigation.
 - **Practice Lab** (`lab.html`): the 90-day simulation, kept as a training mode.
 - **Not connected yet:** your Supabase project. Everything works in demo mode (browser storage) until you do step 1.
 
@@ -13,7 +13,7 @@ The CLI and connector I use are signed in to a different account than the one th
 
 1. `npx supabase login` with the owner account.
 2. `npx supabase link --project-ref qljazetkcycptbcpmsdl` (asks for the DB password).
-3. `npx supabase db push`. Applies the six files in `supabase/migrations/` in order.
+3. `npx supabase db push`. Applies the seven files in `supabase/migrations/` in order.
 4. Dashboard → **Authentication → Providers**: enable Email. For instant sign-up, turn **Confirm email** off (hackathon only; turn back on for real users).
 5. Dashboard → **Authentication → URL Configuration**: add `http://localhost:3000` and your deployed URL as redirect URLs.
 6. Dashboard → **Settings → API**: copy the **anon / publishable** key into `.env` as `SUPABASE_ANON_KEY`. Never use `service_role`.

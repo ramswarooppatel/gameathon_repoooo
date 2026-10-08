@@ -12,8 +12,9 @@ Rule: every schema change ships as a new file in `supabase/migrations/` and is l
 | 4 | `20261008030000_goals_and_realtime.sql` | `monthly_goal` on profiles, realtime for entries/filings/xp | ⬜ pending |
 | 5 | `20261008040000_recurring.sql` | `recurring` templates (rent, payroll, subscriptions) | ⬜ pending |
 | 6 | `20261008050000_oxro_org_workspace.sql` | Company workspace: `orgs`, `org_members` (admin/finance/viewer), invite codes + email-domain lock, `parties`, entry approvals (server-enforced trigger), org-wide RLS, team leaderboard | ⬜ pending |
+| 7 | `20261008060000_workflow.sql` | `orgs.budgets`, `checklist_ticks` (weekly + month-end checklist state) | ⬜ pending |
 
-Apply all six: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
+Apply all seven: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
 Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-up), add redirect URLs, put `SUPABASE_ANON_KEY` in `.env`, run `npm run sync-env`.
 
 ## Finance manager (`index.html`, `app/`)
@@ -27,7 +28,7 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Alerts: overdue invoices, bills due, ITC at risk, duplicates, unusually large bills, filings | ✅ |
 | GST & Compliance: filing calendar (GSTR-1 / 3B), monthly CGST/SGST/IGST position, ITC, interest estimate | ✅ |
 | Payment reminder text (copy for WhatsApp/email) | ✅ |
-| Gamification: XP, 7 levels, daily streak, 4 quests, 11 badges, level-up toasts | ✅ |
+| Gamification: XP, 7 levels, daily streak, 5 quests, 14 badges, level-up toasts | ✅ |
 | Leaderboard (opt-in nickname, via `get_leaderboard()`) | 🟡 |
 | Audit trail: hash-chained, verify, export, "why" on every action | ✅ (demo) 🟡 (cloud) |
 | Insights: AI CFO (Groq) + 30-day stress test | ✅ stress test · 🟡 AI needs Groq model enabled |
@@ -50,6 +51,11 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Landing page `welcome.html`: hero, cited stats, 6 novelty cards, comparison, how it works, security, FAQ, references | ✅ |
 | Missing component styles added (`app/components.css`): streak strip, badge and level modals, XP pop | ✅ |
 | UI smoke test `python scripts/ui_smoke.py`: 12 pages x 3 roles x light/dark x 375/768/1440 + landing and legal pages | ✅ passes |
+| **Guided workflow (`#today`)**: 5-step daily routine, weekly checklist, month-end close (auto + manual steps), smart tips with reasons, XP for finishing | ✅ demo · 🟡 cloud (needs migration 7) |
+| **Cash planner (`#planner`)**: 60-day forecast from each customer's usual delay, 3 scenarios + what-if slider, pay-first ranking, collections ladder, category budgets vs actual | ✅ demo · 🟡 cloud |
+| **Learn (`#learn`)**: 8 money lessons with quizzes (pass 2/3 = 25 XP), Scholar badge | ✅ |
+| Command palette (Ctrl/⌘+K), smoother page transitions, a11y attributes now actually set (`aria-*`, `role`, `tabindex`) | ✅ |
+| End-to-end test `python scripts/flow_test.py` (workflow, planner, lesson, palette, theme) | ✅ passes |
 | Practice Lab (the 90-day simulation, `lab.html`) | ✅ |
 | Self-checks: `npm run check` (GST, ledger, workspace math, sim) | ✅ |
 

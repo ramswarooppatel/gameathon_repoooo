@@ -3,7 +3,7 @@
 <title>Oxro Labs · Finance Desk</title>
 <link rel="icon" href="public/logo.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#08110e">
 <script>(function(){try{var p=localStorage.getItem('myf-theme')||'system',l=p==='light'||(p==='system'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.dataset.theme=l?'light':'dark';document.documentElement.dataset.fs=localStorage.getItem('myf-fs')||'md';document.documentElement.dataset.contrast=localStorage.getItem('myf-contrast')||'normal';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>
-<link rel="stylesheet" href="app/app.css"><link rel="stylesheet" href="app/components.css"><link rel="stylesheet" href="app/theme-light.generated.css"><link rel="stylesheet" href="app/theme.css"></head>
+<link rel="stylesheet" href="app/app.css"><link rel="stylesheet" href="app/components.css"><link rel="stylesheet" href="app/theme-light.generated.css"><link rel="stylesheet" href="app/theme.css"><link rel="stylesheet" href="app/workflow.css"></head>
 <body>
 <div id="app" hidden>
   <aside id="sidebar">
@@ -17,6 +17,10 @@
       </button>
     </div>
     <nav id="desktop-nav">
+      <a href="#today" data-v="today" title="Today">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+        <span class="nav-label">Today</span>
+      </a>
       <a href="#dashboard" data-v="dashboard" title="Dashboard">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
         <span class="nav-label">Dashboard</span>
@@ -43,9 +47,17 @@
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
         <span class="nav-label">Reports</span>
       </a>
+      <a href="#planner" data-v="planner" title="Cash planner">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/></svg>
+        <span class="nav-label">Cash planner</span>
+      </a>
       <a href="#insights" data-v="insights" title="Insights">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
         <span class="nav-label">Insights</span>
+      </a>
+      <a href="#learn" data-v="learn" title="Learn">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
+        <span class="nav-label">Learn</span>
       </a>
       <a href="#rewards" data-v="rewards" title="Team rewards">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zm11 4H4v10h12V6z" clip-rule="evenodd"/></svg>
@@ -117,9 +129,9 @@
 
   <!-- Mobile Bottom Navigation Bar (<= 860px) -->
   <nav id="mobile-bar" class="mobile-bottom-nav">
-    <a href="#dashboard" class="mb-tab" data-v="dashboard">
+    <a href="#today" class="mb-tab" data-v="today">
       <svg class="mb-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
-      <span>Dashboard</span>
+      <span>Today</span>
       <em id="mb-nav-n" class="mb-badge" hidden></em>
     </a>
     <a href="#transactions" class="mb-tab" data-v="transactions">
@@ -152,6 +164,9 @@
       <button id="drawer-close" class="drawer-close-btn">&times;</button>
     </div>
     <div class="drawer-grid">
+      <a href="#dashboard" class="drawer-item" data-v="dashboard"><svg class="drawer-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg><span>Dashboard</span></a>
+      <a href="#planner" class="drawer-item" data-v="planner"><svg class="drawer-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/></svg><span>Cash planner</span></a>
+      <a href="#learn" class="drawer-item" data-v="learn"><svg class="drawer-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/></svg><span>Learn</span></a>
       <a href="#parties" class="drawer-item" data-v="parties">
         <svg class="drawer-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
         <span>Parties</span>
@@ -190,6 +205,7 @@
 <div id="auth" class="overlay"><div class="modal"></div></div>
 <div id="toasts"></div>
 <script type="module" src="app/extras.js"></script>
+<script type="module" src="app/palette.js"></script>
 <script type="module" src="app/main.js"></script>
 <script>
   // UI Interaction Controller for Sidebar & Mobile Drawer
@@ -252,6 +268,9 @@
 
     // Top Bar Breadcrumb Page Title sync
     const PAGE_NAMES = {
+      today: 'Today',
+      planner: 'Cash planner',
+      learn: 'Learn',
       dashboard: 'Dashboard',
       transactions: 'Transactions',
       parties: 'Customers & vendors',

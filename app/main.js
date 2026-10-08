@@ -7,14 +7,15 @@ import { makeGstin, validGstin } from '../tax/gst.js';
 import { today, h, toast, $, inr } from './util.js';
 import { VIEWS, reminderText } from './views.js';
 import * as V2 from './views2.js';
+import * as V3 from './views3.js';
 import { invoiceHtml } from './invoice.js';
 import { countUp, muted, setMuted } from './fx.js';
 import { dueMonths } from './recurring.js';
 
-const S = { recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
-const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide };
-const TITLES = { dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
-let view = location.hash.slice(1) || 'dashboard', booted = false, session = null;
+const S = { ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
+const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn };
+const TITLES = { today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
+let view = location.hash.slice(1) || 'today', booted = false, session = null;
 
 // Role permissions. viewer: read · finance: write · admin: everything.
 S.can = (act) => { const r = S.repo?.role; return act === 'write' ? r === 'admin' || r === 'finance' : act === 'admin' ? r === 'admin' : true; };
@@ -47,7 +48,7 @@ function compute() {
 
 async function load() {
   const r = S.repo;
-  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true })]);
+  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks')]);
   S.profile = await r.getProfile();
   S.members = await r.members().catch(() => []);
   const log = await r.list('activity_log', { col: 'n', asc: true });
@@ -113,6 +114,33 @@ const A = {
     await audit('reminder.send', id, { party: r.party, via: party?.phone ? 'whatsapp' : party?.email ? 'email' : 'copy' }, `Prepared a payment reminder for ${r.party} (invoice ${r.number || 'n/a'}, due ${r.due_date}).`);
     await award('alert_resolved', id + ':remind', XP.alert_resolved, 'Reminder prepared'); await refresh();
   },
+  async tick(period, item, on) {
+    if (!need('write')) return;
+    const cur = S.ticks.find((x) => x.period === period && x.item === item);
+    if (on && !cur) { const row = await S.repo.insert('checklist_ticks', { period, item }); if (row) S.ticks.push(row); }
+    if (!on && cur) { await S.repo.remove('checklist_ticks', cur.id); S.ticks = S.ticks.filter((x) => x !== cur); }
+    await audit(on ? 'checklist.tick' : 'checklist.untick', null, { period, item }, `${on ? 'Completed' : 'Reopened'} checklist step "${item}" for ${period}.`);
+    await refresh();
+  },
+  async saveBudgets(budgets) {
+    if (!need('admin')) return;
+    const clean = Object.fromEntries(Object.entries(budgets).filter(([, v]) => +v > 0).map(([k, v]) => [k, Math.round(+v)]));
+    await S.repo.saveProfile({ budgets: clean }); S.profile = { ...S.profile, budgets: clean };
+    await audit('budgets.save', null, { categories: Object.keys(clean).length }, `Set monthly budgets for ${Object.keys(clean).length} categor${Object.keys(clean).length === 1 ? 'y' : 'ies'}.`);
+    toast('Budgets saved', 'Progress bars now track your limits.'); await refresh();
+  },
+  async completeLesson(id, score) {
+    await audit('lesson.pass', id, { score }, `Passed the lesson "${id}" with ${score}/3.`);
+    await award('lesson', id, 25, 'Lesson complete'); await refresh();
+  },
+  async remindStage(id, text) {
+    const r = find(id), party = S.parties.find((p) => p.name === r.party);
+    try { await navigator.clipboard.writeText(text); toast('Reminder copied', party?.phone ? 'Opening WhatsApp…' : 'Paste it into WhatsApp or email.'); } catch { if (!party?.phone) prompt('Copy this reminder:', text); }
+    if (party?.phone) window.open(`https://wa.me/${phoneDigits(party.phone)}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    else if (party?.email) window.open(`mailto:${party.email}?subject=${encodeURIComponent('Payment reminder: ' + (r.number || ''))}&body=${encodeURIComponent(text)}`);
+    await audit('reminder.send', id, { party: r.party, via: party?.phone ? 'whatsapp' : party?.email ? 'email' : 'copy' }, `Prepared a staged payment reminder for ${r.party} (invoice ${r.number || 'n/a'}, due ${r.due_date}).`);
+    await award('alert_resolved', id + ':remind', XP.alert_resolved, 'Reminder prepared'); await refresh();
+  },
   printInvoice(id) {
     const r = S.allRows.find((x) => x.id === id), w = window.open('', '_blank');
     if (!w) return toast('Pop-up blocked', 'Allow pop-ups to print invoices.', 'bad');
@@ -172,7 +200,7 @@ const A = {
     await award('alert_resolved', `file:${type}:${period}`, XP.alert_resolved, 'Compliance alert resolved'); await refresh();
   },
   async saveProfile(p) {
-    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit'];
+    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets'];
     if (!S.can('admin')) { for (const k of orgKeys) delete p[k]; }
     else if (Object.keys(p).some((k) => orgKeys.includes(k)) === false) { /* personal only */ }
     await S.repo.saveProfile({ ...p, health: S.sum.health }); S.profile = { ...S.profile, ...p };
@@ -248,7 +276,7 @@ function render() {
   root.append(h('h2', {}, TITLES[view] || ''), (ALL[view] || ALL.dashboard)(S, A));
   countUp(root);
 }
-window.addEventListener('hashchange', () => { view = location.hash.slice(1) || 'dashboard'; render(); });
+window.addEventListener('hashchange', () => { view = location.hash.slice(1) || 'today'; render(); window.scrollTo({ top: 0 }); });
 
 // ---- auth + workspace setup + boot ---------------------------------------------
 function modal(...kids) { const box = $('#auth'); box.hidden = false; $('#app').hidden = true; const m = box.querySelector('.modal'); m.textContent = ''; m.append(h('span', { class: 'logo big' }, h('img', { src: 'public/logo.png', alt: '' })), ...kids); }
@@ -309,7 +337,7 @@ function live() {
   const sb = db.client();
   if (sb && S.repo.mode === 'cloud') {
     const ch = sb.channel('myf-live');
-    for (const table of ['entries', 'filings', 'xp_events', 'parties']) ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => { clearTimeout(debounce); debounce = setTimeout(async () => { await load(); await refresh(); }, 400); });
+    for (const table of ['entries', 'filings', 'xp_events', 'parties', 'checklist_ticks']) ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => { clearTimeout(debounce); debounce = setTimeout(async () => { await load(); await refresh(); }, 400); });
     ch.subscribe();
   }
   setInterval(async () => { if (today() !== day0) { day0 = today(); if (await award('checkin', day0, XP.checkin, 'New day: daily check-in')) toast('New day', `${S.ctx.streak}-day streak`); await refresh(); } }, 60000);

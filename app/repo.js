@@ -1,9 +1,9 @@
 // Data layer. Cloud = Supabase (company workspace, RLS by org role). Demo = this browser only.
 import * as db from '../db/supabase.js';
 
-const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'] };
-const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log']);
-const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit'];
+const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'] };
+const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks']);
+const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets'];
 const KEY = 'myf-demo-data';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));

@@ -23,6 +23,7 @@ export const QUESTS = [
   { id: 'checkin', title: 'Daily check-in', desc: 'Open your finance dashboard', xp: 10, done: (c) => c.has('checkin', c.today) },
   { id: 'log', title: 'Log 2 transactions', desc: 'Keep your books current', xp: 20, done: (c) => c.countToday('entry_added') >= 2, progress: (c) => `${Math.min(2, c.countToday('entry_added'))}/2` },
   { id: 'resolve', title: 'Resolve one alert', desc: 'Collect, pay or file something', xp: 25, done: (c) => c.countToday('alert_resolved') >= 1 },
+  { id: 'routine', title: 'Finish the daily routine', desc: 'Complete all 5 steps on Today', xp: 20, done: (c) => c.has('daily_routine', c.today) },
   { id: 'clean', title: 'Zero overdue invoices', desc: 'Collect everything that is past due', xp: 30, done: (c) => c.sum.receivable > 0 && c.sum.overdueCount === 0 },
 ];
 
@@ -37,6 +38,9 @@ export const BADGES = [
   { code: 'clean_books', title: 'Clean Books', desc: 'No overdue invoices with 5+ entries', test: (c) => c.entries.length >= 5 && c.sum.overdueCount === 0 },
   { code: 'healthy', title: 'Healthy Business', desc: 'Reach a health score of 80', test: (c) => c.entries.length >= 3 && c.sum.health >= 80 },
   { code: 'goal', title: 'Goal Crusher', desc: 'Hit your monthly collection goal', test: (c) => +c.profile.monthly_goal > 0 && c.sum.collectedMonth >= +c.profile.monthly_goal },
+  { code: 'scholar', title: 'Scholar', desc: 'Pass 4 money lessons', test: (c) => c.events.filter((e) => e.kind === 'lesson').length >= 4 },
+  { code: 'closer', title: 'Month-End Closer', desc: 'Complete a month-end close', test: (c) => c.events.some((e) => e.kind === 'month_close') },
+  { code: 'routine5', title: 'Routine Pro', desc: 'Finish the daily routine 5 times', test: (c) => c.events.filter((e) => e.kind === 'daily_routine').length >= 5 },
   { code: 'streak3', title: 'On a Roll', desc: '3-day check-in streak', test: (c) => c.streak >= 3 },
   { code: 'streak7', title: 'Habit Builder', desc: '7-day check-in streak', test: (c) => c.streak >= 7 },
 ];
