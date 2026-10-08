@@ -144,9 +144,11 @@ $('ask').onclick = async () => { $('a').textContent = '…'; $('a').textContent 
 function render0() { g = createGame(42); gh = createGame(42, { crew: false }); ledger = createLedger('fincrew-ledger'); renderTrust(g.s); render(); }
 (function loop(t) { if (g) drawScene($('scene').getContext('2d'), g.s, g.cards, t); requestAnimationFrame(loop); })(0);
 injectStyles();
-// Go Back on the two overlays: closes the overlay only. It never starts or resets a run.
+// Go Back. Start overlay: leave the Lab for the page the Captain came from (history if they came from the app, otherwise the app). Nothing is started or reset.
+// End overlay: just closes the result popup so the final board stays visible; New run starts again.
+const leaveLab = () => { if (window.history.length > 1 && document.referrer.indexOf(location.origin) === 0) window.history.back(); else location.href = 'index.html'; };   // `history` is the rewind list in this file, so use window.history
 for (const id of ['start', 'end']) {
-  const modal = $(id).querySelector('.modal'), back = Object.assign(document.createElement('button'), { type: 'button', className: 'go-back', style: 'margin-top:10px', onclick: () => { $(id).hidden = true; } });
+  const modal = $(id).querySelector('.modal'), back = Object.assign(document.createElement('button'), { type: 'button', className: 'go-back', style: 'margin-top:10px', onclick: id === 'start' ? leaveLab : () => { $(id).hidden = true; } });
   const ic = icon('arrow-right', { size: 14 }); ic.style.cssText = 'display:inline-block;transform:scaleX(-1);vertical-align:-2px;margin-right:4px'; back.append(ic, 'Go Back');
   modal.append(back);
 }

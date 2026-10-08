@@ -54,15 +54,23 @@ try:
         pg.keyboard.press('?'); pg.wait_for_timeout(300); check('shortcuts dialog opens and Esc closes it', pg.locator('.overlay:not([hidden]) .wide-modal').count() == 1)
         pg.keyboard.press('Escape'); pg.wait_for_timeout(300); check('help closed, still on Transactions', pg.locator('.overlay .wide-modal').count() == 0 and h() == '#transactions')
         check('no page errors in the app', not errs)
-        # ---- Practice Lab
+        # ---- Practice Lab: Go Back on the Start overlay returns to where the Captain came from
+        pg.goto(BASE + 'index.html#today'); pg.wait_for_selector('#app:not([hidden])'); pg.wait_for_timeout(500)
+        with pg.expect_navigation(): pg.locator('#desktop-nav a.lab').click()
+        pg.wait_for_selector('#begin'); check('arrived on the Practice Lab with the Start overlay', pg.url.endswith('lab.html') and pg.locator('#start').is_visible())
+        check('Start overlay shows Go Back', pg.locator('#start button.go-back').is_visible() and 'Go Back' in pg.locator('#start button.go-back').inner_text())
+        with pg.expect_navigation(): pg.locator('#start button.go-back').click()
+        pg.wait_for_selector('#auth:not([hidden]) button, #app:not([hidden])')                       # a full page load: demo mode asks to continue again, as on any reload
+        check('Go Back returns to the Finance Desk (not into the lab, no run started)', pg.url.startswith(BASE + 'index.html') and pg.locator('#start').count() == 0)
+        lab0 = ctx.new_page(); lab0.goto(BASE + 'lab.html'); lab0.wait_for_selector('#begin')           # opened directly: nothing to go back to
+        with lab0.expect_navigation(): lab0.locator('#start button.go-back').click()
+        check('opened directly: Go Back goes to the Finance Desk', lab0.url.startswith(BASE + 'index.html')); lab0.close()
         lab = ctx.new_page(); lerr = []; lab.on('pageerror', lambda e: lerr.append(str(e))); lab.goto(BASE + 'lab.html'); lab.wait_for_selector('#begin')
         check('lab header keeps its Finance Desk link', lab.locator('a.back-link').count() == 1 and lab.locator('a.back-link').get_attribute('href') == 'index.html')
-        check('Start overlay shows Go Back', lab.locator('#start button.go-back').is_visible() and 'Go Back' in lab.locator('#start button.go-back').inner_text())
         lab.wait_for_function("document.getElementById('h-cash').textContent.includes('1,20,000')")
-        lab.locator('#start button.go-back').click(); lab.wait_for_timeout(200)
-        check('Go Back closes the overlay without starting', lab.locator('#start').is_hidden() and lab.text_content('#h-day') == '0' and lab.locator('#log li').count() == 0)
+        lab.click('#begin'); lab.wait_for_timeout(500)
         lab.click('#next'); lab.click('#next'); lab.click('#next'); lab.wait_for_timeout(100)
-        check('the lab keeps working and keeps its state', lab.text_content('#h-day') == '3' and not lab.locator('#prev').is_disabled())
+        check('the lab runs and keeps its state', lab.text_content('#h-day') == '3' and not lab.locator('#prev').is_disabled())
         lab.click('#restart'); lab.wait_for_timeout(600)
         check('New run still starts a fresh run', lab.text_content('#h-day') == '0' and lab.locator('#start').is_hidden())
         for _ in range(95):
