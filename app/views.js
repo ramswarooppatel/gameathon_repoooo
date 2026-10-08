@@ -19,14 +19,73 @@ function ring(score, label, suffix = '') {
   return box;
 }
 
+// Sparkline SVG generator with delta indicator
+function sparkline(vals, color = '#19c37d') {
+  if (!vals || vals.length < 2) return h('span', { class: 'spark-empty' });
+  const W = 70, H = 22, min = Math.min(...vals), max = Math.max(...vals), range = max - min || 1;
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * W;
+    const y = H - ((v - min) / range) * (H - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const wrap = h('span', { class: 'spark-wrap' });
+  wrap.innerHTML = `<svg width="${W}" height="${H}" class="sparkline" viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/></svg>`;
+  return wrap;
+}
+
 function chart(monthly) {
-  const max = Math.max(1, ...monthly.flatMap((m) => [m.income, m.spend])), W = 560, H = 170, bw = 22, g = W / monthly.length;
-  let s = `<svg viewBox="0 0 ${W} ${H + 24}" class="chart">`;
+  const max = Math.max(1, ...monthly.flatMap((m) => [m.income, m.spend])), W = 580, H = 180, bw = 24, g = W / monthly.length;
+  const tip = h('div', { class: 'chart-tooltip', hidden: true });
+  
+  let s = `<svg viewBox="0 0 ${W} ${H + 30}" class="chart" role="img" aria-label="Income vs Spend 6-Month Chart"><title>Income vs Spend (Last 6 Months)</title><desc>Monthly breakdown of collections and expenditures</desc>`;
+  
+  // Background grid lines
+  for (let l = 1; l <= 3; l++) {
+    const y = Math.round((H / 4) * l);
+    s += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="var(--line-subtle)" stroke-dasharray="3 3"/>`;
+  }
+
   monthly.forEach((m, i) => {
-    const x = i * g + g / 2, hi = (m.income / max) * H, hs = (m.spend / max) * H;
-    s += `<rect x="${x - bw - 2}" y="${H - hi}" width="${bw}" height="${hi}" rx="4" fill="#19c37d"/><rect x="${x + 2}" y="${H - hs}" width="${bw}" height="${hs}" rx="4" fill="#5b6f66"/><text x="${x}" y="${H + 16}" text-anchor="middle" fill="#8aa398" font-size="11">${m.m.slice(5)}/${m.m.slice(2, 4)}</text>`;
+    const x = i * g + g / 2, hi = Math.max(4, (m.income / max) * (H - 10)), hs = Math.max(4, (m.spend / max) * (H - 10));
+    const net = m.income - m.spend;
+    const monthLabel = m.m.slice(5) + '/' + m.m.slice(2, 4);
+    s += `<g class="chart-col" data-idx="${i}" data-m="${monthLabel}" data-in="${m.income}" data-out="${m.spend}" data-net="${net}" tabindex="0" aria-label="${monthLabel}: Income ₹${Math.round(m.income)}, Spend ₹${Math.round(m.spend)}">
+      <rect class="bar-income" x="${x - bw - 3}" y="${H - hi}" width="${bw}" height="${hi}" rx="5" fill="var(--acc)"/>
+      <rect class="bar-spend" x="${x + 3}" y="${H - hs}" width="${bw}" height="${hs}" rx="5" fill="#5c756a"/>
+      <text x="${x}" y="${H + 20}" text-anchor="middle" fill="var(--mu)" font-size="11" font-weight="500">${monthLabel}</text>
+    </g>`;
   });
-  const b = h('div'); b.innerHTML = s + '</svg>'; return b;
+  s += '</svg>';
+
+  const legend = h('div', { class: 'chart-legend' },
+    h('span', { class: 'leg-item leg-in' }, h('i', {}), 'Income / Sales'),
+    h('span', { class: 'leg-item leg-out' }, h('i', {}), 'Spend & Payroll'),
+    h('span', { class: 'leg-net mu small' }, `6M Net: ${inr(monthly.reduce((a, c) => a + (c.income - c.spend), 0))}`)
+  );
+
+  const container = h('div', { class: 'chart-box' }, legend);
+  container.innerHTML = legend.outerHTML + s;
+  container.append(tip);
+
+  // Interactive tooltip positioning on hover & focus
+  const cols = container.querySelectorAll('.chart-col');
+  cols.forEach((col) => {
+    const showTip = () => {
+      const label = col.dataset.m, inc = +col.dataset.in, out = +col.dataset.out, net = +col.dataset.net;
+      tip.hidden = false;
+      tip.innerHTML = `<b>${label} Breakdown</b><div class="tip-row in"><span>Income:</span> <b>${inr(inc)}</b></div><div class="tip-row out"><span>Spend:</span> <b>${inr(out)}</b></div><div class="tip-row net ${net >= 0 ? 'pos' : 'neg'}"><span>Net:</span> <b>${(net >= 0 ? '+' : '−') + inr(Math.abs(net))}</b></div>`;
+      const rect = col.getBoundingClientRect(), boxRect = container.getBoundingClientRect();
+      const left = rect.left - boxRect.left + rect.width / 2;
+      tip.style.left = `${Math.max(60, Math.min(boxRect.width - 60, left))}px`;
+      tip.style.top = `${Math.max(10, rect.top - boxRect.top - 70)}px`;
+    };
+    col.addEventListener('mouseenter', showTip);
+    col.addEventListener('focus', showTip);
+    col.addEventListener('mouseleave', () => { tip.hidden = true; });
+    col.addEventListener('blur', () => { tip.hidden = true; });
+  });
+
+  return container;
 }
 
 export function reminderText(S, r) {
@@ -50,16 +109,46 @@ function stories(S) {
   if (L.next) add('good', `${L.toNext} XP to ${L.next}`, 'Log a transaction, pay on time or resolve an alert.', 'rewards');
   add('info', `${S.ctx.streak}-day streak`, S.ctx.has('checkin', today()) ? 'Checked in today. See you tomorrow!' : 'Check in today to keep it alive.', 'rewards');
   if (s.runwayMonths) add(s.runwayMonths < 1.5 ? 'bad' : 'good', `${s.runwayMonths} months of runway`, s.runwayMonths < 1.5 ? 'Cash is tight. Delay a bill or chase receivables.' : 'Comfortable buffer at your current spend.', 'insights');
-  return h('div', { class: 'stories' }, ...out.map((o) => h('button', { class: 'story ' + o.tone, onclick: () => (location.hash = o.go) }, h('b', {}, o.title), h('span', {}, o.body))));
+  
+  const track = h('div', { class: 'stories' }, ...out.map((o) => {
+    const btn = h('button', { class: 'story ' + o.tone, onclick: () => (location.hash = o.go) },
+      h('div', { class: 'story-progress' }, h('div', { class: 'story-progress-bar' })),
+      h('b', {}, o.title),
+      h('span', {}, o.body)
+    );
+    return btn;
+  }));
+
+  // Attach auto-advancing timer carousel controller with hover pause
+  import('./fx.js').then((fx) => fx.autoAdvanceStories?.(track)).catch(() => {});
+  return track;
 }
 
 function rewardCard(S, A) {
   const done = QUESTS.filter((q) => q.done(S.ctx)).length, day = today(), got = S.events.find((e) => e.kind === 'scratch' && e.day === day), prize = prizeFor(day);
   if (got) return card('Daily reward', h('div', { class: 'prize' }, h('b', {}, `+${got.xp} XP`), h('small', {}, 'Claimed today. A new card unlocks tomorrow.')));
   if (done < 3) return card('Daily reward', h('div', { class: 'prize lock' }, h('b', {}, 'Locked'), h('small', {}, `Complete ${3 - done} more quest(s) to unlock a scratch card.`)), h('i', { class: 'bar' }, h('u', { style: `width:${(done / 3) * 100}%` })));
+  
   const cv = h('canvas', { width: 260, height: 90, class: 'foil' }), wrap = h('div', { class: 'scratch' }, h('div', { class: 'prize' }, h('b', {}, `+${prize} XP`), h('small', {}, 'Bonus reward')), cv);
-  scratch(cv, async () => { confetti(); await A.award('scratch', day, prize, 'Daily reward revealed'); setTimeout(A.render, 900); });
-  return card('Daily reward ready', wrap, h('p', { class: 'small mu' }, 'Scratch the card to reveal your bonus XP.'));
+  let claimed = false;
+  const reveal = async () => {
+    if (claimed) return;
+    claimed = true;
+    confetti();
+    await A.award('scratch', day, prize, 'Daily reward revealed');
+    setTimeout(A.render, 900);
+  };
+  
+  scratch(cv, reveal);
+  
+  // Accessible fallback for keyboard/tap users
+  const tapBtn = h('button', {
+    class: 'scratch-fallback-btn',
+    type: 'button',
+    onclick: reveal
+  }, 'Tap to reveal');
+
+  return card('Daily reward ready', wrap, tapBtn, h('p', { class: 'small mu center' }, 'Scratch the card or tap reveal to claim your bonus XP.'));
 }
 
 function onboarding(S, A) {
@@ -75,8 +164,32 @@ function onboarding(S, A) {
     ...steps.map(([t, d, done, go]) => h('div', { class: 'quest ' + (done ? 'done' : '') }, h('i', {}, done ? '✓' : ''), h('div', {}, h('b', {}, t), h('small', {}, d)), !done && h('button', { onclick: () => A.go(go) }, 'Do it'))));
 }
 
+
 function dashboard(S, A) {
-  const s = S.sum, goal = +S.profile.monthly_goal, k = (l, v, sub, key, cls = '') => h('div', { class: 'kpi ' + cls }, h('span', {}, l), num(v, key), sub && h('small', {}, sub));
+  const s = S.sum, goal = +S.profile.monthly_goal;
+  
+  // Sparkline data extraction from 6 months of trends
+  const mIn = s.monthly.map(m => m.income);
+  const mOut = s.monthly.map(m => m.spend);
+  const mNet = s.monthly.map(m => m.income - m.spend);
+  
+  // Delta calculation compared to previous month
+  const lastM = s.monthly[s.monthly.length - 1] || { income: 0, spend: 0 };
+  const prevM = s.monthly[s.monthly.length - 2] || { income: 0, spend: 0 };
+  const inDeltaPct = prevM.income > 0 ? Math.round(((lastM.income - prevM.income) / prevM.income) * 100) : null;
+  
+  const k = (l, v, sub, key, cls = '', sparkVals = null, delta = null) => h('div', { class: 'kpi ' + cls },
+    h('div', { class: 'kpi-head' },
+      h('span', {}, l),
+      delta != null ? h('span', { class: 'delta-pill ' + (delta >= 0 ? 'pos' : 'neg') }, `${delta >= 0 ? '▲ +' : '▼ '}${delta}%`) : null
+    ),
+    h('div', { class: 'kpi-body' },
+      num(v, key),
+      sparkVals ? sparkline(sparkVals, cls.includes('bad') ? 'var(--bad)' : 'var(--acc)') : null
+    ),
+    sub && h('small', {}, sub)
+  );
+
   const alerts = S.alerts;
   const alertRow = (a) => h('div', { class: 'al ' + a.sev }, h('span', {}, a.text), h('div', { class: 'acts' },
     ...(a.type === 'overdue' && S.can('write') ? [h('button', { onclick: () => A.reminder(a.id) }, 'Send reminder'), h('button', { onclick: () => A.markPaid(a.id) }, 'Mark paid')] : []),
@@ -84,52 +197,252 @@ function dashboard(S, A) {
     ...(a.type === 'approval' ? [h('button', { onclick: () => A.go('approvals') }, 'Review')] : []),
     ...(a.type === 'filing' ? [h('button', { onclick: () => A.go('compliance') }, 'Open')] : []),
     ...(a.type === 'itc' ? [h('button', { onclick: () => A.go('transactions') }, 'Review bills')] : [])));
-  const gstin = S.profile.gstin ? S.profile.gstin.slice(0, 4) + ' •••• •••• ' + S.profile.gstin.slice(-3) : 'Add GSTIN in Settings';
+    
+  const rawGstin = S.profile.gstin || '';
+  const maskedGstin = rawGstin ? rawGstin.slice(0, 4) + ' •••• •••• ' + rawGstin.slice(-3) : 'Add GSTIN in Settings';
+  
+  // Click-to-copy GSTIN element with toast confirmation
+  const gstinEl = h('button', {
+    class: 'bc-gstin-btn',
+    title: rawGstin ? 'Click to copy GSTIN' : 'Add GSTIN in Settings',
+    onclick: async (e) => {
+      e.stopPropagation();
+      if (!rawGstin) return A.go('settings');
+      try {
+        await navigator.clipboard.writeText(rawGstin);
+        toast('Copied', `GSTIN ${rawGstin} copied to clipboard`);
+      } catch {
+        toast('GSTIN', rawGstin);
+      }
+    }
+  }, h('svg', { viewBox: '0 0 20 20', width: '12', height: '12', fill: 'currentColor', class: 'copy-icon' },
+    h('path', { d: 'M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z' }),
+    h('path', { d: 'M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z' })
+  ), maskedGstin);
+
+  // Business Card with 3D Tilt attachment
+  const bizCard = h('section', { class: 'bizcard' },
+    h('div', { class: 'bc-top' }, h('b', {}, S.profile.name || 'Your business'), h('span', {}, 'MIND YOUR FUNDS')),
+    h('div', { class: 'bc-cash' }, h('small', {}, 'Cash in hand'), num(s.cash, 'cash')),
+    h('div', { class: 'bc-bot' }, gstinEl, h('span', { class: 'bc-level' }, `Lv ${S.level.n} · ${S.level.name}`))
+  );
+  import('./fx.js').then((fx) => fx.tilt?.(bizCard)).catch(() => {});
+
   return h('div', { class: 'stack' },
     h('div', { class: 'grid3' },
-      h('section', { class: 'bizcard' }, h('div', { class: 'bc-top' }, h('b', {}, S.profile.name || 'Your business'), h('span', {}, 'MIND YOUR FUNDS')),
-        h('div', { class: 'bc-cash' }, h('small', {}, 'Cash in hand'), num(s.cash, 'cash')), h('div', { class: 'bc-bot' }, h('span', {}, gstin), h('span', {}, `Lv ${S.level.n} · ${S.level.name}`))),
+      bizCard,
       h('section', { class: 'card center' }, h('h3', {}, 'Business health'), ring(S.entries.length ? s.health : 0, S.entries.length ? (s.health >= 70 ? 'Healthy' : s.health >= 45 ? 'Watch' : 'At risk') : 'No data'), h('p', { class: 'small mu' }, `Runway ${s.runwayMonths} mo · ${s.overdueCount} overdue`)),
       h('section', { class: 'card center' }, h('h3', {}, 'Monthly goal'), goal > 0 ? ring(Math.min(100, Math.round((s.collectedMonth / goal) * 100)), 'collected', '%') : h('div', { class: 'prize lock' }, h('b', {}, 'No goal set'), h('button', { onclick: () => A.go('settings') }, 'Set a goal')), goal > 0 && h('p', { class: 'small mu' }, `${inr(s.collectedMonth)} of ${inr(goal)} this month`))),
     onboarding(S, A),
     stories(S),
-    h('div', { class: 'kpis four' }, k('To collect', s.receivable, `${inr(s.overdueAmt)} overdue`, 'recv'), k('To pay', s.payable, `${s.upcoming.filter((u) => u.dir === 'out').length} due in 14 days`, 'pay'), k('GST this month', s.gst.net.total, 'net payable after ITC', 'gst'), k('Input credit at risk', s.gst.itcAtRisk, 'fix supplier GSTINs', 'itc', s.gst.itcAtRisk ? 'bad' : '')),
+    h('div', { class: 'kpis four' },
+      k('To collect', s.receivable, `${inr(s.overdueAmt)} overdue`, 'recv', '', mIn, inDeltaPct),
+      k('To pay', s.payable, `${s.upcoming.filter((u) => u.dir === 'out').length} due in 14 days`, 'pay', '', mOut),
+      k('GST this month', s.gst.net.total, 'net payable after ITC', 'gst', '', mNet),
+      k('Input credit at risk', s.gst.itcAtRisk, 'fix supplier GSTINs', 'itc', s.gst.itcAtRisk ? 'bad' : '')
+    ),
     h('div', { class: 'grid2' },
       card("Today's quests", ...QUESTS.map((q) => { const d = q.done(S.ctx); return h('div', { class: 'quest ' + (d ? 'done' : '') }, h('i', {}, d ? '✓' : ''), h('div', {}, h('b', {}, q.title), h('small', {}, `${q.desc}${q.progress && !d ? ' · ' + q.progress(S.ctx) : ''}`)), h('em', {}, `+${q.xp} XP`)); })),
       rewardCard(S, A)),
     h('div', { class: 'grid2' },
       card(`Needs attention (${alerts.length})`, ...(alerts.length ? alerts.slice(0, 6).map(alertRow) : [empty(S.entries.length ? 'All clear. Nothing needs your attention.' : 'No data yet. Add a transaction or load sample data in Settings.')])),
       card('Next 14 days', ...(s.upcoming.length ? s.upcoming.map((u) => h('div', { class: 'up' }, h('span', { class: 'dot ' + u.dir }), h('div', {}, h('b', {}, u.party), h('small', {}, `${u.dir === 'in' ? 'Collect' : 'Pay'} by ${u.due_date}`)), h('em', {}, (u.dir === 'in' ? '+' : '−') + inr(u.total)))) : [empty('Nothing due in the next 14 days.')]))),
-    card('Income vs spend (6 months)', chart(s.monthly), h('p', { class: 'small mu' }, 'Green = sales · Grey = purchases, expenses and payroll (by invoice date)')));
+    card('Income vs spend (6 months)', chart(s.monthly), h('p', { class: 'small mu' }, 'Hover or tap bars for detailed breakdown. Green = Sales · Grey = Spend & Payroll.')));
 }
 
 // ---------------------------------------------------------------- Transactions
 function entryDialog(S, A) {
   const f = h('form', { class: 'form', method: 'dialog' });
-  const sel = (id, opts, v) => { const e = h('select', { id }, ...opts.map(([val, t]) => h('option', { value: val, selected: val === v }, t))); return e; };
+  const sel = (id, opts, v) => h('select', { id }, ...opts.map(([val, t]) => h('option', { value: val, selected: val === v }, t)));
   const inp = (id, type = 'text', extra = {}) => h('input', { id, type, ...extra });
-  const L = (t, el, cls = '') => h('label', { class: cls }, t, el);
-  const kind = sel('e-kind', Object.entries(KIND), 'sale'), gstin = inp('e-gstin', 'text', { maxLength: 15 }), supply = sel('e-supply', [['intra', 'Same state (CGST+SGST)'], ['inter', 'Other state (IGST)']], 'intra');
-  const hint = h('small', { class: 'mu' });
-  gstin.oninput = () => { gstin.value = gstin.value.toUpperCase(); hint.textContent = gstin.value ? (validGstin(gstin.value) ? 'GSTIN valid' : 'GSTIN invalid: input credit will be flagged') : ''; if (validGstin(gstin.value) && validGstin(S.profile.gstin || '')) supply.value = guessSupply(S.profile.gstin, gstin.value); };
+  const L = (t, el, cls = '', errId = '') => h('label', { class: cls }, t, el, errId ? h('small', { id: errId, class: 'field-err' }) : null);
+
+  const kind = sel('e-kind', Object.entries(KIND), 'sale');
+  const gstin = inp('e-gstin', 'text', { maxLength: 15, placeholder: '22AAAAA0000A1Z5' });
+  const supply = sel('e-supply', [['intra', 'Same state (CGST + SGST)'], ['inter', 'Other state (IGST)']], 'intra');
+  const gstinStatus = h('div', { class: 'gstin-status-msg mu small' });
+
+  const validateGstinField = () => {
+    gstin.value = gstin.value.toUpperCase().trim();
+    if (!gstin.value) {
+      gstinStatus.textContent = '';
+      gstinStatus.className = 'gstin-status-msg mu small';
+      gstin.classList.remove('err', 'valid');
+      return;
+    }
+    const ok = validGstin(gstin.value);
+    if (ok) {
+      gstinStatus.textContent = '✓ Valid GSTIN (Mod-36 Verified)';
+      gstinStatus.className = 'gstin-status-msg good small';
+      gstin.classList.remove('err');
+      gstin.classList.add('valid');
+      if (validGstin(S.profile.gstin || '')) supply.value = guessSupply(S.profile.gstin, gstin.value);
+    } else {
+      gstinStatus.textContent = '✕ Invalid GSTIN format or checksum. Input credit may be flagged.';
+      gstinStatus.className = 'gstin-status-msg bad small';
+      gstin.classList.remove('valid');
+      gstin.classList.add('err');
+    }
+  };
+
+  gstin.oninput = validateGstinField;
+
   const rate = sel('e-rate', [0, 5, 12, 18, 28, 40].map((r) => [r, r + '%']), 18);
-  const [date, due, paid] = [inp('e-date', 'date', { value: today() }), inp('e-due', 'date'), inp('e-paid', 'date')];
-  const [num, party, taxable, cat] = [inp('e-num'), inp('e-party', 'text', { required: true }), inp('e-taxable', 'number', { min: 0, step: '0.01', required: true }), inp('e-cat', 'text', { placeholder: 'Rent, Software, Travel…' })];
-  kind.onchange = () => { if (kind.value === 'salary') rate.value = 0; };
+  const [date, due, paid] = [inp('e-date', 'date', { value: today(), required: true }), inp('e-due', 'date'), inp('e-paid', 'date')];
+  const [num, party, taxable, cat] = [
+    inp('e-num', 'text', { placeholder: 'e.g. INV-2026-001' }),
+    inp('e-party', 'text', { required: true, placeholder: 'Client or vendor name' }),
+    inp('e-taxable', 'number', { min: 0, step: '0.01', required: true, placeholder: '0.00' }),
+    inp('e-cat', 'text', { placeholder: 'Rent, Software, Travel, Supplies…' })
+  ];
+
+  // Date coherence validation
+  const dateErr = h('small', { class: 'field-err' });
+  const checkDates = () => {
+    if (due.value && date.value && due.value < date.value) {
+      dateErr.textContent = 'Due date cannot precede invoice date';
+      due.classList.add('err');
+    } else {
+      dateErr.textContent = '';
+      due.classList.remove('err');
+    }
+  };
+  date.onchange = checkDates;
+  due.onchange = checkDates;
+
+  kind.onchange = () => {
+    if (kind.value === 'salary') rate.value = 0;
+    updateTaxPreview();
+  };
+
   party.setAttribute('list', 'party-list');
   const dl = h('datalist', { id: 'party-list' }, ...S.parties.map((p) => h('option', { value: p.name })));
-  party.onchange = () => { const p = S.parties.find((x) => x.name === party.value); if (p?.gstin && !gstin.value) { gstin.value = p.gstin; gstin.oninput(); } };
-  const dlg = h('dialog', { class: 'dlg' }, h('h3', {}, 'Add transaction'), f, dl);
-  f.append(L('Type', kind), L('Invoice / ref no.', num), L('Party / payee', party, 'full'), L('Party GSTIN', gstin, 'full'), hint, L('Category (expenses)', cat, 'full'), L('Date', date), L('Due date', due),
-    L('Taxable value ₹', taxable), L('GST %', rate), L('Supply', supply), L('Paid on', paid),
-    h('div', { class: 'full row' }, h('button', { type: 'button', onclick: () => dlg.close() }, 'Cancel'), h('button', { class: 'pri', type: 'submit' }, 'Save')));
+  party.onchange = () => {
+    const p = S.parties.find((x) => x.name === party.value);
+    if (p?.gstin && !gstin.value) {
+      gstin.value = p.gstin;
+      validateGstinField();
+    }
+  };
+
+  // Sticky Live Tax Preview Card
+  const prevTaxable = h('b', {}, '₹0');
+  const prevCgst = h('span', {}, '₹0');
+  const prevSgst = h('span', {}, '₹0');
+  const prevIgst = h('span', {}, '₹0');
+  const prevTotal = h('b', { class: 'tax-grand-total' }, '₹0');
+  const cgstRow = h('div', { class: 'tax-preview-row' }, h('span', {}, 'CGST:'), prevCgst);
+  const sgstRow = h('div', { class: 'tax-preview-row' }, h('span', {}, 'SGST:'), prevSgst);
+  const igstRow = h('div', { class: 'tax-preview-row', style: 'display:none' }, h('span', {}, 'IGST:'), prevIgst);
+
+  const updateTaxPreview = () => {
+    const val = +taxable.value || 0;
+    const r = +rate.value || 0;
+    const isInter = supply.value === 'inter';
+    const t = (val * r) / 100;
+    prevTaxable.textContent = inr(val);
+    if (isInter) {
+      cgstRow.style.display = 'none';
+      sgstRow.style.display = 'none';
+      igstRow.style.display = 'flex';
+      prevIgst.textContent = inr(t);
+    } else {
+      cgstRow.style.display = 'flex';
+      sgstRow.style.display = 'flex';
+      igstRow.style.display = 'none';
+      prevCgst.textContent = inr(t / 2);
+      prevSgst.textContent = inr(t / 2);
+    }
+    prevTotal.textContent = inr(val + t);
+  };
+
+  taxable.oninput = updateTaxPreview;
+  rate.onchange = updateTaxPreview;
+  supply.onchange = updateTaxPreview;
+
+  const taxPreviewBox = h('div', { class: 'tax-preview-card' },
+    h('h4', { class: 'tax-preview-title' }, '⚡ Live Tax Summary'),
+    h('div', { class: 'tax-preview-row' }, h('span', {}, 'Taxable Amount:'), prevTaxable),
+    cgstRow,
+    sgstRow,
+    igstRow,
+    h('div', { class: 'tax-preview-divider' }),
+    h('div', { class: 'tax-preview-row total' }, h('span', {}, 'Grand Total:'), prevTotal)
+  );
+
+  const formFields = h('div', { class: 'form-grid-fields' },
+    L('Type', kind), L('Invoice / Ref No.', num),
+    L('Party / Payee *', party, 'full'),
+    L('Party GSTIN', gstin, 'full'),
+    gstinStatus,
+    L('Category (for expenses)', cat, 'full'),
+    L('Date *', date),
+    h('label', {}, 'Due Date', due, dateErr),
+    L('Taxable Value ₹ *', taxable),
+    L('GST Rate', rate),
+    L('Supply Type', supply),
+    L('Paid on Date', paid)
+  );
+
+  const dlg = h('dialog', { class: 'dlg wide entry-dialog-modal' },
+    h('div', { class: 'dialog-head' },
+      h('h3', {}, 'Add New Transaction'),
+      h('button', { type: 'button', class: 'dialog-close-btn', onclick: () => dlg.close(), title: 'Close (Esc)' }, '✕')
+    ),
+    f,
+    dl
+  );
+
+  f.append(
+    h('div', { class: 'dialog-content-split' },
+      formFields,
+      taxPreviewBox
+    ),
+    h('div', { class: 'full row dialog-footer' },
+      h('button', { type: 'button', onclick: () => dlg.close() }, 'Cancel (Esc)'),
+      h('button', { class: 'pri', type: 'submit' }, 'Save Transaction (Enter)')
+    )
+  );
+
+  // Keyboard navigation & ergonomics
+  dlg.onkeydown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      dlg.close();
+    }
+  };
+
   f.onsubmit = async (ev) => {
     ev.preventDefault();
+    if (!party.value.trim() || !+taxable.value) {
+      return toast('Missing required fields', 'Please provide a party name and taxable value.', 'bad');
+    }
+    if (due.value && date.value && due.value < date.value) {
+      return toast('Invalid dates', 'Due date cannot precede invoice date.', 'bad');
+    }
     try {
-      await A.addEntry({ kind: kind.value, number: num.value.trim() || null, party: party.value.trim(), gstin: gstin.value.trim() || null, category: cat.value.trim() || null, date: date.value, due_date: due.value || null, taxable: +taxable.value, gst_rate: +rate.value, supply: supply.value, paid_date: paid.value || null });
+      await A.addEntry({
+        kind: kind.value,
+        number: num.value.trim() || null,
+        party: party.value.trim(),
+        gstin: gstin.value.trim() || null,
+        category: cat.value.trim() || null,
+        date: date.value,
+        due_date: due.value || null,
+        taxable: +taxable.value,
+        gst_rate: +rate.value,
+        supply: supply.value,
+        paid_date: paid.value || null
+      });
       dlg.close();
-    } catch (x) { toast('Could not save', x.message, 'bad'); }
+      f.reset();
+      date.value = today();
+      updateTaxPreview();
+    } catch (x) {
+      toast('Could not save', x.message, 'bad');
+    }
   };
+
   return dlg;
 }
 
@@ -154,30 +467,272 @@ function importDialog(S, A) {
   return dlg;
 }
 
-let txFilter = 'all', txQuery = '';
+let txFilter = 'all', txQuery = '', txSortCol = 'date', txSortAsc = false;
+let txVisibleCols = { ref: true, due: true, taxable: true, tax: true };
+
 function transactions(S, A) {
-  const dlg = entryDialog(S, A), imp = importDialog(S, A), body = h('tbody');
-  const draw = () => {
-    body.textContent = '';
-    const rows = S.allRows.filter((r) => (txFilter === 'all' || r.kind === txFilter) && (!txQuery || (r.party + (r.number || '')).toLowerCase().includes(txQuery))).sort((a, b) => b.date.localeCompare(a.date));
-    if (!rows.length) body.append(h('tr', {}, h('td', { colSpan: 9, class: 'mu' }, 'No transactions yet.')));
-    for (const r of rows) {
-      const over = !r.paid_date && r.due_date && r.due_date < today();
-      body.append(h('tr', {}, h('td', {}, KIND[r.kind]), h('td', {}, r.number || ''), h('td', {}, r.party), h('td', {}, r.date), h('td', {}, r.due_date || ''),
-        h('td', { class: 'n' }, inr(r.taxable)), h('td', { class: 'n' }, inr(r.tax.total)), h('td', { class: 'n' }, inr(r.total)),
-        h('td', {}, r.approval === 'pending' ? h('span', { class: 'tag' }, 'Pending approval') : r.approval === 'rejected' ? h('span', { class: 'tag over' }, 'Rejected') : h('span', { class: 'tag ' + (r.paid_date ? 'paid' : over ? 'over' : '') }, r.paid_date ? 'Paid' : over ? 'Overdue' : 'Open')),
-        h('td', { class: 'acts' }, S.can('write') && !r.paid_date && (r.approval || 'approved') === 'approved' && h('button', { onclick: () => A.markPaid(r.id) }, 'Mark paid'), S.can('write') && over && r.kind === 'sale' && h('button', { onclick: () => A.reminder(r.id) }, 'Remind'),
-          r.kind === 'sale' && h('button', { title: 'Print invoice', onclick: () => A.printInvoice(r.id) }, 'Invoice'),
-          S.can('admin') && h('button', { title: 'Delete', onclick: () => confirm('Delete this entry? This is recorded in the audit trail.') && A.remove(r.id) }, '✕'))));
+  const dlg = entryDialog(S, A), imp = importDialog(S, A);
+  const selectedIds = new Set();
+  const body = h('tbody');
+  const thead = h('thead');
+
+  // Floating Bulk Action Bar
+  const bulkBar = h('div', { class: 'bulk-action-bar', style: 'display:none' });
+  const bulkCount = h('span', { class: 'bulk-count' }, '0 selected');
+  const bulkPayBtn = h('button', {
+    class: 'pri sm',
+    onclick: async () => {
+      if (!selectedIds.size) return;
+      const ids = [...selectedIds];
+      for (const id of ids) {
+        await A.markPaid(id);
+      }
+      selectedIds.clear();
+      toast('Marked as paid', `Updated ${ids.length} transaction(s)`, 'good');
+      draw();
+    }
+  }, '✓ Mark as Paid');
+  const bulkClearBtn = h('button', {
+    class: 'sm',
+    onclick: () => {
+      selectedIds.clear();
+      draw();
+    }
+  }, 'Deselect all');
+
+  bulkBar.append(bulkCount, bulkPayBtn, bulkClearBtn);
+
+  const updateBulkBar = () => {
+    if (selectedIds.size > 0 && S.can('write')) {
+      bulkBar.style.display = 'flex';
+      bulkCount.textContent = `${selectedIds.size} selected`;
+    } else {
+      bulkBar.style.display = 'none';
     }
   };
-  const filter = h('select', { onchange: (e) => { txFilter = e.target.value; draw(); } }, ...[['all', 'All'], ...Object.entries(KIND)].map(([v, t]) => h('option', { value: v, selected: v === txFilter }, t)));
-  const search = h('input', { placeholder: 'Search party or invoice no.', value: txQuery, oninput: (e) => { txQuery = e.target.value.toLowerCase(); draw(); } });
+
+  const drawHeader = () => {
+    thead.textContent = '';
+    const thSort = (col, label, isNum = false) => {
+      const active = txSortCol === col;
+      const icon = active ? (txSortAsc ? ' ▲' : ' ▼') : ' ↕';
+      const th = h('th', {
+        class: `sortable-th ${isNum ? 'n' : ''} ${active ? 'active' : ''}`,
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `Sort by ${label}`,
+        onclick: () => {
+          if (txSortCol === col) txSortAsc = !txSortAsc;
+          else { txSortCol = col; txSortAsc = (col === 'party' || col === 'kind'); }
+          draw();
+        },
+        onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); } }
+      }, h('div', { class: 'th-content' }, label, h('span', { class: 'sort-icon' }, icon)));
+      return th;
+    };
+
+    const selectAllCb = h('input', {
+      type: 'checkbox',
+      title: 'Select all',
+      onchange: (e) => {
+        const rows = getFilteredRows();
+        if (e.target.checked) rows.forEach((r) => selectedIds.add(r.id));
+        else selectedIds.clear();
+        draw();
+      }
+    });
+
+    const ths = [
+      h('th', { class: 'cb-col' }, selectAllCb),
+      thSort('kind', 'Type'),
+      txVisibleCols.ref ? thSort('number', 'No.') : null,
+      thSort('party', 'Party'),
+      thSort('date', 'Date'),
+      txVisibleCols.due ? thSort('due_date', 'Due') : null,
+      txVisibleCols.taxable ? thSort('taxable', 'Taxable', true) : null,
+      txVisibleCols.tax ? thSort('tax', 'GST', true) : null,
+      thSort('total', 'Total', true),
+      thSort('status', 'Status'),
+      h('th', { class: 'acts-th' }, 'Actions')
+    ].filter(Boolean);
+
+    thead.append(h('tr', {}, ...ths));
+  };
+
+  const getFilteredRows = () => {
+    return S.allRows.filter((r) => {
+      const mKind = txFilter === 'all' || r.kind === txFilter;
+      const mQuery = !txQuery || (r.party + (r.number || '') + (r.category || '')).toLowerCase().includes(txQuery);
+      return mKind && mQuery;
+    }).sort((a, b) => {
+      let valA = a[txSortCol] ?? '';
+      let valB = b[txSortCol] ?? '';
+      if (txSortCol === 'total') { valA = +a.total; valB = +b.total; }
+      if (txSortCol === 'taxable') { valA = +a.taxable; valB = +b.taxable; }
+      if (txSortCol === 'tax') { valA = +a.tax.total; valB = +b.tax.total; }
+      if (txSortCol === 'status') {
+        valA = a.paid_date ? 'paid' : (a.due_date && a.due_date < today() ? 'overdue' : 'open');
+        valB = b.paid_date ? 'paid' : (b.due_date && b.due_date < today() ? 'overdue' : 'open');
+      }
+      if (typeof valA === 'string') return txSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      return txSortAsc ? valA - valB : valB - valA;
+    });
+  };
+
+  const draw = () => {
+    drawHeader();
+    body.textContent = '';
+    const rows = getFilteredRows();
+
+    if (!rows.length) {
+      const emptyState = h('tr', {},
+        h('td', { colSpan: 11, class: 'empty-table-cell' },
+          h('div', { class: 'empty-state-wrap' },
+            h('svg', { viewBox: '0 0 24 24', width: '48', height: '48', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' },
+              h('path', { d: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' })
+            ),
+            h('h4', {}, txQuery ? 'No matching transactions found' : 'No transactions recorded yet'),
+            h('p', { class: 'mu small' }, txQuery ? 'Try clearing your search query or switching filters.' : 'Record your first sale, purchase or expense invoice to start tracking.'),
+            S.can('write') && h('button', { class: 'pri sm', onclick: () => dlg.showModal() }, '+ Add transaction')
+          )
+        )
+      );
+      body.append(emptyState);
+      updateBulkBar();
+      return;
+    }
+
+    for (const r of rows) {
+      const over = !r.paid_date && r.due_date && r.due_date < today();
+      const isSelected = selectedIds.has(r.id);
+
+      const rowCb = h('input', {
+        type: 'checkbox',
+        checked: isSelected,
+        onchange: (e) => {
+          if (e.target.checked) selectedIds.add(r.id);
+          else selectedIds.delete(r.id);
+          updateBulkBar();
+        }
+      });
+
+      // Quick action buttons revealed on hover/focus
+      const quickActs = h('div', { class: 'quick-acts' },
+        S.can('write') && !r.paid_date && (r.approval || 'approved') === 'approved' && h('button', {
+          class: 'sm pri-subtle',
+          title: 'Mark as Paid',
+          onclick: () => A.markPaid(r.id)
+        }, 'Mark Paid'),
+        S.can('write') && over && r.kind === 'sale' && h('button', {
+          class: 'sm',
+          title: 'Send Payment Reminder',
+          onclick: () => A.reminder(r.id)
+        }, 'Remind'),
+        r.kind === 'sale' && h('button', {
+          class: 'sm',
+          title: 'View & Print Tax Invoice',
+          onclick: () => A.printInvoice(r.id)
+        }, 'Invoice'),
+        S.can('admin') && h('button', {
+          class: 'sm del-btn',
+          title: 'Delete Entry',
+          onclick: () => confirm('Delete this transaction? This action is permanently recorded in the audit trail.') && A.remove(r.id)
+        }, '✕')
+      );
+
+      const cells = [
+        h('td', { class: 'cb-col' }, rowCb),
+        h('td', { class: 'tx-kind-cell' },
+          h('span', { class: `kind-pill ${r.kind}` }, KIND[r.kind] || r.kind)
+        ),
+        txVisibleCols.ref ? h('td', { class: 'mono small' }, r.number || '—') : null,
+        h('td', { class: 'party-cell' },
+          h('b', {}, r.party),
+          r.category ? h('small', { class: 'mu block' }, r.category) : null
+        ),
+        h('td', {}, r.date),
+        txVisibleCols.due ? h('td', { class: over ? 'bad' : '' }, r.due_date || '—') : null,
+        txVisibleCols.taxable ? h('td', { class: 'n' }, inr(r.taxable)) : null,
+        txVisibleCols.tax ? h('td', { class: 'n mu small' }, inr(r.tax.total)) : null,
+        h('td', { class: 'n font-bold' }, inr(r.total)),
+        h('td', {},
+          r.approval === 'pending'
+            ? h('span', { class: 'tag' }, 'Pending approval')
+            : r.approval === 'rejected'
+            ? h('span', { class: 'tag over' }, 'Rejected')
+            : h('span', { class: 'tag ' + (r.paid_date ? 'paid' : over ? 'over' : '') }, r.paid_date ? 'Paid' : over ? 'Overdue' : 'Open')
+        ),
+        h('td', { class: 'acts-cell' }, quickActs)
+      ].filter(Boolean);
+
+      const tr = h('tr', { class: `tx-row ${isSelected ? 'selected' : ''}` }, ...cells);
+      body.append(tr);
+    }
+
+    updateBulkBar();
+  };
+
+  // Column visibility toggle menu
+  const colMenu = h('div', { class: 'col-menu-dropdown', style: 'display:none' });
+  const toggleColMenu = (e) => {
+    e.stopPropagation();
+    colMenu.style.display = colMenu.style.display === 'none' ? 'block' : 'none';
+  };
+  document.addEventListener('click', () => { colMenu.style.display = 'none'; });
+
+  const makeColToggle = (key, label) => {
+    const cb = h('input', {
+      type: 'checkbox',
+      checked: txVisibleCols[key],
+      onchange: () => {
+        txVisibleCols[key] = cb.checked;
+        draw();
+      }
+    });
+    return h('label', { class: 'col-toggle-item', onclick: (e) => e.stopPropagation() }, cb, label);
+  };
+
+  colMenu.append(
+    makeColToggle('ref', 'Invoice / Ref No.'),
+    makeColToggle('due', 'Due Date'),
+    makeColToggle('taxable', 'Taxable Value'),
+    makeColToggle('tax', 'GST Amount')
+  );
+
+  const colToggleBtn = h('div', { class: 'col-toggle-wrap' },
+    h('button', { class: 'sm', onclick: toggleColMenu, title: 'Toggle visible columns' }, '⚙ Columns ▾'),
+    colMenu
+  );
+
+  const filter = h('select', { onchange: (e) => { txFilter = e.target.value; draw(); } }, ...[['all', 'All Types'], ...Object.entries(KIND)].map(([v, t]) => h('option', { value: v, selected: v === txFilter }, t)));
+  const search = h('input', { placeholder: 'Search party, invoice #, category…', value: txQuery, oninput: (e) => { txQuery = e.target.value.toLowerCase(); draw(); } });
+
   draw();
-  return h('div', { class: 'stack' }, card('Transactions', h('div', { class: 'row bar' }, filter, search, h('span', { class: 'sp' }),
-    S.can('write') && h('button', { onclick: () => imp.openPicker() }, 'Import bank CSV'), h('button', { onclick: () => download(`transactions-${today()}.csv`, toCsv(S.allRows)) }, 'Export CSV'), S.can('write') && h('button', { class: 'pri', onclick: () => dlg.showModal() }, '+ Add transaction')),
-    h('div', { class: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, ...['Type', 'No.', 'Party', 'Date', 'Due', 'Taxable', 'GST', 'Total', 'Status', ''].map((t, i) => h('th', { class: [5, 6, 7].includes(i) ? 'n' : '' }, t)))), body))), dlg, imp);
+
+  return h('div', { class: 'stack' },
+    card('Transactions',
+      h('div', { class: 'row tx-toolbar' },
+        filter,
+        search,
+        colToggleBtn,
+        h('span', { class: 'sp' }),
+        S.can('write') && h('button', { onclick: () => imp.openPicker() }, 'Import bank CSV'),
+        h('button', { onclick: () => download(`transactions-${today()}.csv`, toCsv(S.allRows)) }, 'Export CSV'),
+        S.can('write') && h('button', { class: 'pri', onclick: () => dlg.showModal() }, '+ Add transaction')
+      ),
+      bulkBar,
+      h('div', { class: 'scroll sticky-table-wrap' },
+        h('table', { class: 'tx-table' },
+          thead,
+          body
+        )
+      )
+    ),
+    dlg,
+    imp
+  );
 }
+
 
 // ---------------------------------------------------------------- Compliance
 let gstMonth = null;
@@ -228,17 +783,122 @@ function insights(S, A) {
 }
 
 // ---------------------------------------------------------------- Rewards
+function streakHistoryStrip(S) {
+  const days = [];
+  const t = today();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const checkedIn = S.ctx.has('checkin', dateStr);
+    const isToday = dateStr === t;
+    days.push({ dateStr, dayNum: d.getDate(), dayName: d.toLocaleDateString('en-US', { weekday: 'narrow' }), checkedIn, isToday });
+  }
+
+  const strip = h('div', { class: 'streak-strip' },
+    ...days.map((item) => h('div', {
+      class: `strip-day ${item.checkedIn ? 'checked' : 'missed'} ${item.isToday ? 'today' : ''}`,
+      title: `${item.dateStr}: ${item.checkedIn ? 'Checked in (+10 XP)' : item.isToday ? 'Check in pending today' : 'No check in'}`
+    },
+      h('span', { class: 'strip-label' }, item.dayName),
+      h('div', { class: 'strip-bubble' }, item.checkedIn ? '✓' : item.isToday ? '•' : '—'),
+      h('small', { class: 'strip-num' }, String(item.dayNum))
+    ))
+  );
+
+  return h('div', { class: 'streak-card-wrap' },
+    h('div', { class: 'streak-header' },
+      h('div', { class: 'streak-title-row' },
+        h('span', { class: 'streak-flame-icon' }, '🔥'),
+        h('b', {}, `${S.ctx.streak}-Day Active Streak`),
+        h('span', { class: 'pill good' }, S.ctx.has('checkin', t) ? 'Active Today' : 'Pending Check-in')
+      ),
+      h('small', { class: 'mu' }, 'Check in daily to build habits, earn +10 XP, and protect your streak.')
+    ),
+    strip
+  );
+}
+
+function badgeDetailModal(badge, earned, S) {
+  const existing = document.getElementById('badge-modal');
+  if (existing) existing.remove();
+
+  const overlay = h('div', { id: 'badge-modal', class: 'overlay' });
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+  const modal = h('div', { class: 'modal badge-modal-card' },
+    h('div', { class: 'badge-modal-icon ' + (earned ? 'earned' : 'locked') }, earned ? '🏆' : '🔒'),
+    h('h3', { style: 'margin:0;font-size:var(--fs-lg)' }, badge.title),
+    h('p', { class: 'mu', style: 'margin:4px 0' }, badge.desc),
+    h('div', { class: 'badge-modal-meta' },
+      h('span', { class: 'pill ' + (earned ? 'good' : 'warn') }, earned ? 'Unlocked' : 'Locked'),
+      h('span', { class: 'mu small' }, `Reward: +25 XP`)
+    ),
+    h('div', { class: 'badge-criteria-box' },
+      h('b', {}, 'Unlock Criteria'),
+      h('p', { class: 'small mu' }, `Status: ${earned ? 'Completed and awarded.' : 'In progress — keep using the finance desk to unlock.'}`)
+    ),
+    h('button', { class: 'pri full', onclick: close }, 'Close')
+  );
+
+  overlay.append(modal);
+  document.body.append(overlay);
+}
+
 function rewards(S, A) {
   const L = S.level, earned = new Set(S.badges.map((b) => b.code)), lb = h('div', { class: 'mu' }, 'Loading…');
-  A.leaderboard().then((rows) => { lb.textContent = ''; if (!rows.length) lb.append(empty(S.repo.mode === 'cloud' ? 'No one has joined yet. Opt in under Settings to appear here.' : 'Leaderboard needs a signed-in account.')); rows.forEach((r, i) => lb.append(h('div', { class: 'up' }, h('b', {}, `#${i + 1}`), h('div', {}, h('b', {}, r.nickname), h('small', {}, `Health ${r.health ?? '—'}`)), h('em', {}, `${r.xp} XP`)))); });
+  A.leaderboard().then((rows) => {
+    lb.textContent = '';
+    if (!rows.length) lb.append(empty(S.repo.mode === 'cloud' ? 'No one has joined yet. Opt in under Settings to appear here.' : 'Leaderboard needs a signed-in account.'));
+    rows.forEach((r, i) => lb.append(h('div', { class: 'up' }, h('b', {}, `#${i + 1}`), h('div', {}, h('b', {}, r.nickname), h('small', {}, `Health ${r.health ?? '—'}`)), h('em', {}, `${r.xp} XP`))));
+  });
+
+  const badgeCards = BADGES.map((b) => {
+    const isEarned = earned.has(b.code);
+    return h('div', {
+      class: 'badge ' + (isEarned ? 'on' : ''),
+      tabindex: '0',
+      role: 'button',
+      'aria-label': `${b.title} badge: ${isEarned ? 'Unlocked' : 'Locked'}`,
+      onclick: () => badgeDetailModal(b, isEarned, S),
+      onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); badgeDetailModal(b, isEarned, S); } }
+    },
+      h('div', { class: 'badge-head' },
+        h('span', { class: 'badge-symbol' }, isEarned ? '🏆' : '🔒'),
+        h('b', {}, b.title)
+      ),
+      h('small', {}, b.desc)
+    );
+  });
+
   return h('div', { class: 'stack' },
+    streakHistoryStrip(S),
     h('div', { class: 'grid2' },
-      card('Your level', h('div', { class: 'lvl' }, h('b', {}, `Level ${L.n} · ${L.name}`), h('span', {}, `${S.xp} XP`)), h('i', { class: 'bar' }, h('u', { style: `width:${L.pct}%` })), h('p', { class: 'small mu' }, L.next ? `${L.toNext} XP to ${L.next}` : 'Top level reached'),
-        h('p', {}, h('b', {}, `${S.ctx.streak}-day streak`), h('span', { class: 'mu' }, ' · check in daily to keep it alive')),
-        h('p', { class: 'small mu' }, 'XP: check-in 10 · transaction 5 · paid on time 15 · return filed on time 40 · alert resolved 10 · badge 25')),
-      card('Leaderboard', lb)),
-    card(`Badges (${earned.size}/${BADGES.length})`, h('div', { class: 'badges' }, ...BADGES.map((b) => h('div', { class: 'badge ' + (earned.has(b.code) ? 'on' : '') }, h('b', {}, b.title), h('small', {}, b.desc))))),
-    card('Level ladder', h('div', { class: 'ladder' }, ...LEVELS.map(([x, n], i) => h('div', { class: i + 1 <= L.n ? 'on' : '' }, h('b', {}, n), h('small', {}, `${x} XP`))))));
+      card('Your level',
+        h('div', { class: 'lvl' },
+          h('b', {}, `Level ${L.n} · ${L.name}`),
+          h('span', {}, `${S.xp} XP`)
+        ),
+        h('i', { class: 'bar' }, h('u', { style: `width:${L.pct}%` })),
+        h('p', { class: 'small mu' }, L.next ? `${L.toNext} XP to ${L.next}` : 'Top level reached'),
+        h('div', { class: 'row' },
+          h('button', {
+            class: 'pri sm',
+            onclick: () => import('./fx.js').then((fx) => fx.showLevelUpModal?.(L, S.xp, S.profile.name || 'Oxro Labs'))
+          }, 'View Certificate / Share Card')
+        ),
+        h('p', { class: 'small mu', style: 'margin-top:10px' }, 'XP Rewards: Daily check-in +10 · Transaction +5 · Paid on time +15 · Return filed on time +40 · Alert resolved +10 · Badge +25')
+      ),
+      card('Leaderboard', lb)
+    ),
+    card(`Badges (${earned.size}/${BADGES.length}) · Tap for details`,
+      h('div', { class: 'badges' }, ...badgeCards)
+    ),
+    card('Level ladder',
+      h('div', { class: 'ladder' }, ...LEVELS.map(([x, n], i) => h('div', { class: i + 1 <= L.n ? 'on' : '' }, h('b', {}, n), h('small', {}, `${x} XP`))))
+    )
+  );
 }
 
 // ---------------------------------------------------------------- Audit

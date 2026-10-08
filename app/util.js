@@ -1,4 +1,4 @@
-import { confetti, sfx } from './fx.js';
+import { confetti, sfx, spawnXpPop, showLevelUpModal } from './fx.js';
 export const $ = (s, r = document) => r.querySelector(s);
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 export const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
@@ -13,6 +13,14 @@ export function h(tag, props = {}, ...kids) {
 export function toast(title, body = '', kind = '') {
   const t = h('div', { class: 'toast ' + kind }, h('b', {}, title), body);
   document.getElementById('toasts').append(t);
-  if (kind === 'lvl') { confetti(); sfx('lvl'); } else if (kind === 'xp') sfx('xp');
+  if (kind === 'lvl') {
+    confetti();
+    sfx('lvl');
+  } else if (kind === 'xp') {
+    sfx('xp');
+    const match = title.match(/\+?(\d+)\s*XP/i);
+    if (match) spawnXpPop(+match[1]);
+  }
   setTimeout(() => t.remove(), 4200);
 }
+
