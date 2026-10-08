@@ -30,6 +30,14 @@ The CLI and connector I use are signed in to a different account than the one th
 
 Roles: **Admin** everything · **Finance** add/edit transactions, parties, filings, reconcile · **Viewer** read only. These are enforced in the database (RLS + triggers), not just the UI.
 
+## 1c. Load sample data into the database (optional)
+After step 1b (the workspace must exist), run the seed. It adds 5 customers/vendors, 14 transactions (one overdue, one with a bad GSTIN), a recurring rent, 2 filings, a check-in streak, and sets the company GSTIN, opening balance and goal. Dates are relative to today, and re-running is a no-op.
+
+```bash
+npx supabase db query --linked -f supabase/seed.sql
+```
+Or paste `supabase/seed.sql` into the Supabase SQL editor and run it. (The in-app Settings → "Load sample data" button does the same thing from the browser, as the signed-in user.)
+
 ## 2. Verify the cloud path (30 min)
 I only tested demo mode. Run this checklist with a real account and tell me what fails:
 - [ ] Sign up, sign in, sign out, magic link; create workspace; second account joins by invite code and lands as Viewer.

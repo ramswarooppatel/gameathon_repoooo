@@ -48,6 +48,9 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Practice Lab (the 90-day simulation, `lab.html`) | ✅ |
 | Self-checks: `npm run check` (GST, ledger, workspace math, sim) | ✅ |
 
+## Seed data
+`supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).
+
 ## Known limits
 - XP is awarded by the client (capped per event, unique per kind+ref). A determined user could cheat their own score; move to a Postgres function if this matters.
 - GST rates and due dates are planning estimates in `tax/config.js`. Verify with a CA.
