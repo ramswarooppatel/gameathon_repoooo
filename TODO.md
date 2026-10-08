@@ -95,6 +95,8 @@
 
 - [Ram → Sumit] FYI AI CFO: `views.js` line `const facts = ...` in `insights()` now calls `S.aiFacts?.()` first (real company aggregates built in `main.js`); please keep that call when you restyle the page. Message list, buttons `Explain my month`, `What should I do this week?`, `Can I afford a new hire?` and classes `.msg.ai` / `.msg.me` are used by `python scripts/ai_test.py`.
 
+- [Ram → Sumit] FYI Practice Lab redesigned for simplicity at Ram's request: `lab.html` rewritten (same element ids) and styled by the new `lab.css` (light/dark via `data-theme`); `style.css` is no longer linked and can be deleted when you are happy. `ui/coach.js` still injects its own small CSS. Please review `lab.css` in your design pass (contrast, 44 px targets, phone layout) and edit it rather than `style.css`. Keep ids and the dock buttons; `python scripts/lab_test.py` and `scripts/nav_test.py` must stay green.
+
 ## Bugs
 - (none yet) — format: `B1 (reporter) steps → expected/actual → owner → status`
 

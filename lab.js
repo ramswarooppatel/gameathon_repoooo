@@ -86,7 +86,7 @@ const snap = (game) => { const { rng, ...rest } = game; return { data: structure
 const restore = (sn) => { const game = { ...structuredClone(sn.data), rng: mulberry32(0) }; game.rng.setState(sn.rng); return game; };
 const prev = Object.assign(document.createElement('button'), { id: 'prev', title: 'Undo the last day advance (decisions made after it are undone too)' });
 prev.append(icon('arrow-right', { size: 14 }), ' Previous Day'); prev.firstChild.style.cssText = 'display:inline-block;transform:scaleX(-1);vertical-align:-2px;margin-right:4px';
-$('next').before(prev);
+$('auto').before(prev);                                           // dock order: Previous Day, Auto-play, Next day
 function rewind() {
   const h = history.pop(); if (!h) return;
   stopAuto();
@@ -110,7 +110,7 @@ function step() {
 const comboEl = Object.assign(document.createElement('small'), { id: 'combo', title: 'Each decision that is not high risk and made within a day extends the streak and earns bonus XP' }); comboEl.style.cssText = 'display:block;color:var(--acc2);margin-top:2px';
 $('rk-next').after(comboEl);
 function render() {
-  prev.disabled = !history.length;
+  prev.disabled = !history.length; $('b-day').style.width = Math.min(100, (g.s.day / 90) * 100) + '%';
   comboEl.textContent = g.combo ? `Sound streak x${g.combo} · best ${g.bestCombo}` : g.bestCombo ? `Streak reset · best ${g.bestCombo}` : 'Sound streak: decide within a day, avoid high-risk options';
   renderHud(g.s, gh.s);
   last = progress(g, gh); renderProgress(last);

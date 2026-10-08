@@ -1,65 +1,72 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Practice Lab — Oxro Labs · Finance Desk</title>
-<meta name="description" content="Oxro Labs Practice Lab: 90-day interactive fintech simulation testing cash runway, tax compliance, and automated finance agents.">
-<link rel="icon" href="public/logo-64.png"><link rel="apple-touch-icon" href="public/icon-192.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#08110e">
-<link rel="stylesheet" href="style.css"></head>
+<meta name="description" content="Practice running a small business for 90 days. Your AI finance crew advises, you decide, and a twin with no crew shows what it would have cost.">
+<link rel="icon" href="public/logo-64.png"><link rel="apple-touch-icon" href="public/icon-192.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
+<script>(function(){try{var p=localStorage.getItem('myf-theme')||'system',l=p==='light'||(p==='system'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.dataset.theme=l?'light':'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>
+<link rel="stylesheet" href="lab.css"></head>
 <body>
-<header>
-  <div class="brand">
+<a class="skip" href="#cards">Skip to decisions</a>
+<header class="top">
+  <div class="wrap top-in">
     <a href="index.html" class="back-link" title="Return to Finance Desk">
-      <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
-        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
-      </svg>
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
       <span>Finance Desk</span>
     </a>
-    <span class="logo"><img src="public/logo-64.png" alt="Oxro Labs" width="34" height="34"></span>
-    <div><h1>Oxro Labs <span class="lab-pill">Practice Lab</span></h1><small>Plan · Track · Grow — 90-day business simulation</small></div>
-  </div>
-  <div class="rank"><div class="rk"><b id="rk-name">Apprentice</b><span id="rk-xp">0 XP</span></div><i><u id="rk-bar"></u></i><small id="rk-next"></small></div>
-  <div class="ctl">
-    <button id="restart">New run</button>
-    <button id="auto">Auto-play</button>
-    <button id="next" class="pri">Next day</button>
+    <div class="title"><img src="public/logo-64.png" alt="" width="30" height="30"><h1>Practice Lab</h1></div>
+    <div class="rank" title="Your rank grows as you play"><div class="rk"><b id="rk-name">Apprentice</b><span id="rk-xp">0 XP</span></div><i><u id="rk-bar"></u></i><small id="rk-next"></small></div>
+    <button id="restart" class="quiet">New run</button>
   </div>
 </header>
-<section id="hud">
-  <div class="stat"><span>Day</span><b><em id="h-day">0</em><small>/90</small></b></div>
-  <div class="stat"><span>Cash</span><b id="h-cash">₹0</b></div>
-  <div class="stat"><span>Runway</span><b><em id="h-run">0</em><small> days</small></b></div>
-  <div class="stat"><span>GST payable</span><b id="h-gst">—</b></div>
-  <div class="stat"><span>Avg response</span><b id="h-react">—</b></div>
-  <div class="hearts">
-    <div><span>Business health</span><b id="h-health">100</b><i><u id="b-you"></u></i></div>
-    <div><span>Unassisted twin</span><b id="h-ghealth">100</b><i><u id="b-ghost" class="g"></u></i></div>
-  </div>
-</section>
-<main>
-  <section class="col">
-    <canvas id="scene" width="520" height="280"></canvas>
-    <div id="alert" class="alert" hidden></div>
-    <div class="panel"><h3>Missions <span id="m-count" class="pill">0/6</span></h3><ul id="missions"></ul></div>
-    <div class="panel"><h3>Autonomy settings</h3><div id="trust"></div><p class="mu small">Auto-approve lets a specialist act alone only on decisions at or below the cap. Everything is logged.</p></div>
+
+<main class="wrap board">
+  <section class="play" aria-label="Your business">
+    <div class="scoreboard">
+      <div class="tile day"><span class="lbl">Day</span><b class="num"><em id="h-day">0</em><small>/90</small></b><i class="track"><u id="b-day"></u></i></div>
+      <div class="tile"><span class="lbl">Cash in bank</span><b class="num" id="h-cash">₹0</b><small class="sub">lasts about <em id="h-run">0</em> days</small></div>
+      <div class="tile"><span class="lbl">Business health</span><b class="num" id="h-health">100</b>
+        <i class="track"><u id="b-you"></u></i>
+        <small class="sub">A business with no crew: <b id="h-ghealth">100</b></small><i class="track ghost"><u id="b-ghost" class="g"></u></i></div>
+    </div>
+    <div id="alert" class="alert" role="status" hidden></div>
+    <div class="sec-row"><h2 class="sec">Needs your decision</h2><span id="c-count" class="pill">0</span></div>
+    <div id="cards" aria-live="polite"></div>
   </section>
-  <section class="col"><h3 class="sec">Decisions <span id="c-count" class="pill">0</span></h3><div id="cards"></div>
-    <div class="panel"><h3>Ask the CFO <small class="mu">AI · Groq</small></h3>
-      <div class="row"><input id="q" placeholder="Can I afford a new hire next month?"><button id="ask">Ask</button></div><p id="a" class="mu"></p></div>
-  </section>
-  <section class="col">
-    <div class="panel"><h3>GST position</h3><div id="gst" class="mu"></div><p class="mu small">Simulation values. Verify with a Chartered Accountant.</p></div>
-    <div class="panel"><h3>Audit ledger <span id="chain" class="pill">Verified</span></h3>
+
+  <aside class="side" aria-label="Crew and goals">
+    <canvas id="scene" width="520" height="280" role="img" aria-label="Your finance crew and the city skyline. The lights show business health."></canvas>
+    <div class="panel"><div class="sec-row"><h3>Goals</h3><span id="m-count" class="pill">0/7</span></div><ul id="missions"></ul></div>
+    <div class="panel"><h3>Ask your AI CFO</h3>
+      <div class="row"><input id="q" placeholder="Can I afford a new hire next month?" aria-label="Question for the AI CFO"><button id="ask">Ask</button></div><p id="a" class="mu" aria-live="polite"></p></div>
+    <details class="panel more"><summary>Advanced</summary>
+      <h4>Key numbers</h4><dl class="kv"><div><dt>GST to pay</dt><dd id="h-gst">—</dd></div><div><dt>Average response time</dt><dd id="h-react">—</dd></div></dl>
+      <h4>GST position</h4><div id="gst" class="mu"></div><p class="mu small">Simulation values. Verify with a Chartered Accountant.</p>
+      <h4>Crew autonomy</h4><div id="trust"></div><p class="mu small">Auto lets a specialist act alone on decisions at or below the cap. Everything is logged.</p>
+      <h4>Audit ledger <span id="chain" class="pill">Verified</span></h4>
       <div class="row"><label class="mu small"><input type="checkbox" id="ai"> AI wording</label><button id="verify">Verify</button><button id="tamper">Tamper test</button><button id="export">Export</button></div>
-      <ol id="log"></ol></div>
-  </section>
+      <ol id="log"></ol>
+    </details>
+  </aside>
 </main>
-<div id="toasts"></div>
-<div id="start" class="overlay"><div class="modal">
-  <span class="logo big"><img src="public/logo-256.png" alt="" width="104" height="104"></span>
-  <h2>Run the business. Beat the shocks.</h2>
-  <p class="mu">Steer a small Indian business through 90 days of late payers, fraud attempts, GST deadlines and growth chances. Your AI finance team advises; you decide; every decision is recorded in a tamper-evident ledger.</p>
-  <div class="row"><input id="nick" placeholder="Your name" maxlength="20"><input id="seed" type="number" value="42" title="Scenario seed"></div>
+
+<footer class="dock"><div class="wrap dock-in">
+  <button id="auto">Auto-play</button>
+  <button id="next" class="pri">Next day</button>
+</div></footer>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="start" class="overlay"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="start-t">
+  <img class="mark" src="public/logo-256.png" alt="" width="72" height="72">
+  <h2 id="start-t">Run the business. Beat the shocks.</h2>
+  <p class="mu lead">Run a small business for 90 days. Your AI finance crew helps, you make the calls.</p>
+  <ol class="how">
+    <li><b>1</b><div><strong>Press Next day</strong><span>Time moves one day at a time. Bills, invoices and surprises arrive.</span></div></li>
+    <li><b>2</b><div><strong>Decide when the crew asks</strong><span>We mark the recommended choice and explain why.</span></div></li>
+    <li><b>3</b><div><strong>See how you did</strong><span>After 90 days, compare with a business that had no crew.</span></div></li>
+  </ol>
+  <div class="row opts"><input id="nick" placeholder="Your name" maxlength="20" aria-label="Your name"><input id="seed" type="number" value="42" title="Same number, same scenario" aria-label="Scenario number"></div>
   <button id="begin" class="pri wide">Start quarter</button>
 </div></div>
-<div id="end" class="overlay" hidden><div class="modal"><h2 id="end-t"></h2><p id="end-s" class="mu"></p><div id="end-b" class="badges"></div><h3>Leaderboard</h3><ol id="lb" class="mu"></ol><button id="end-new" class="pri wide">Play again</button></div></div>
+<div id="end" class="overlay" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="end-t"><h2 id="end-t"></h2><p id="end-s" class="mu"></p><div id="end-b" class="badges"></div><h3>Leaderboard</h3><ol id="lb" class="mu"></ol><button id="end-new" class="pri wide">Play again</button></div></div>
 <script type="module" src="lab.js"></script>
 </body></html>
