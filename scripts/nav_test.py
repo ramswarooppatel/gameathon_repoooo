@@ -71,8 +71,8 @@ try:
         lab.click('#begin'); lab.wait_for_timeout(500)
         lab.click('#next'); lab.click('#next'); lab.click('#next'); lab.wait_for_timeout(100)
         check('the lab runs and keeps its state', lab.text_content('#h-day') == '3' and not lab.locator('#prev').is_disabled())
-        lab.click('#restart'); lab.wait_for_timeout(600)
-        check('New run still starts a fresh run', lab.text_content('#h-day') == '0' and lab.locator('#start').is_hidden())
+        lab.click('#restart'); lab.wait_for_timeout(300); lab.locator('#begin').click(); lab.wait_for_timeout(600)
+        check('New run then Start quarter starts a fresh run', lab.text_content('#h-day') == '0' and lab.locator('#start').is_hidden())
         for _ in range(95):
             if lab.locator('#end:not([hidden])').count(): break
             lab.click('#next'); lab.wait_for_timeout(15)

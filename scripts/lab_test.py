@@ -84,8 +84,20 @@ try:
         check('and the run continues to the same day 14', cap() == s14)
         pg.click('#auto'); pg.wait_for_timeout(250); pg.click('#prev'); pg.wait_for_timeout(100)
         check('rewind pauses Auto-play', pg.locator('#auto').inner_text() == 'Auto-play')
-        pg.click('#restart'); pg.wait_for_timeout(600)
-        check('New Run clears the history', pg.text_content('#h-day') == '0' and pg.locator('#prev').is_disabled())
+        # ---- New run shows the Start overlay first; nothing is reset until Start quarter
+        for _ in range(3): pg.click('#next'); pg.wait_for_timeout(40)
+        day_before, health_before, ghost_before = pg.text_content('#h-day'), pg.text_content('#h-health'), pg.text_content('#h-ghealth'); log_before = pg.locator('#log li').count()
+        pg.click('#auto'); pg.wait_for_timeout(200); pg.click('#restart'); pg.wait_for_timeout(300)
+        check('New run shows the Start overlay', pg.locator('#start').is_visible() and pg.locator('#start .modal h2').inner_text().startswith('Run the business'))
+        check('New run pauses Auto-play', pg.locator('#auto').inner_text() == 'Auto-play')
+        day_now = pg.text_content('#h-day')
+        pg.wait_for_timeout(900); check('and the run behind it did not advance or reset', pg.text_content('#h-day') == day_now and int(day_now) >= int(day_before) and pg.locator('#log li').count() >= log_before)
+        pg.locator('#start button.go-back').click(); pg.wait_for_timeout(200)
+        check('Go Back from New run closes the overlay and keeps the current run', pg.locator('#start').is_hidden() and pg.text_content('#h-day') == day_now and not pg.locator('#prev').is_disabled() and pg.url.endswith('lab.html'))
+        pg.click('#restart'); pg.wait_for_timeout(200); pg.fill('#nick', 'Asha'); pg.fill('#seed', '7')
+        check('name and seed inputs work', pg.input_value('#nick') == 'Asha' and pg.input_value('#seed') == '7')
+        pg.click('#begin'); pg.wait_for_timeout(600)
+        check('Start quarter begins a fresh run: day 0, ghost reset, no history, no impact, no cards, empty ledger', pg.text_content('#h-day') == '0' and pg.text_content('#h-ghealth') == '100' and pg.text_content('#h-health') == '100' and pg.locator('#prev').is_disabled() and pg.locator('#impact').is_hidden() and pg.locator('.card').count() == 0 and pg.locator('#log li').count() == 0 and pg.locator('#start').is_hidden())
         pg.click('#next'); pg.wait_for_timeout(60); pg.click('#prev'); pg.wait_for_timeout(60)
         check('no history left over from the previous run', pg.locator('#prev').is_disabled() and pg.text_content('#h-day') == '0')
         # ---- play on without answering anything: timeouts show the default consequence, then finish the quarter
@@ -99,6 +111,8 @@ try:
         pg.wait_for_selector('#end:not([hidden])', timeout=8000)
         cmp = pg.locator('#compare').inner_text()
         check('ghost twin reveal', 'SAME BUSINESS' in cmp.upper() and 'YOUR BUSINESS' in cmp.upper() and 'UNASSISTED TWIN' in cmp.upper() and 'Health' in cmp and ('FinCrew helped' in cmp or 'twin' in cmp))
+        pg.click('#end-new'); pg.wait_for_timeout(300)
+        check('New run on the result popup opens the Start overlay', pg.locator('#end').is_hidden() and pg.locator('#start').is_visible())
         # ---- a full run where the owner follows every recommendation beats the twin
         pg.goto('http://localhost:3136/lab.html'); pg.wait_for_selector('#begin'); pg.click('#begin'); pg.wait_for_timeout(400)
         for _ in range(95):

@@ -116,6 +116,7 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Area | Status |
 |------|--------|
 | In-app pages: "Back" above the title of every page except Today; reuses browser history (depth kept in `history.state`), falls back to Today in place on deep links, so Back never leaves the app or shows a blank page; a screen that has its own Back (invoice form) keeps only that one | ✅ (`scripts/nav_test.py`) |
+| Practice Lab "New run" (header and result popup) opens the Start overlay and pauses Auto-play; nothing resets until "Start quarter", which clears the game, Ghost Twin, rewind history, impact panel and ledger. "Go Back" opened from New run just closes the overlay and keeps the current run | ✅ |
 | Practice Lab: Start overlay "Go Back" returns to the page the Captain came from (history when they came from the app, otherwise the Finance Desk); nothing is started or reset. End overlay "Go Back" closes the result popup and keeps the final board. The existing "Finance Desk" link stays | ✅ |
 | Landing and legal pages: Back link (history when you came from another page, otherwise the app) | ✅ |
 | Dialogs: already have Close, Cancel or X; the `?` shortcuts help has none yet (Esc works), left for the dialog unification | ⬜ |

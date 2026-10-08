@@ -125,7 +125,9 @@ async function finish(s) {
 }
 
 $('next').onclick = step;
-$('restart').onclick = $('end-new').onclick = start;
+// New run only SHOWS the Start overlay (pausing Auto-play). Nothing is reset until Start quarter runs start(), so the current run is never lost silently.
+const openStart = () => { clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; $('end').hidden = true; $('start').dataset.mode = 'new'; $('start').hidden = false; };
+$('restart').onclick = $('end-new').onclick = openStart;
 $('auto').onclick = () => {
   if (timer) { clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; return; }
   timer = setInterval(step, 600); $('auto').textContent = 'Pause';
@@ -148,7 +150,7 @@ injectStyles();
 // End overlay: just closes the result popup so the final board stays visible; New run starts again.
 const leaveLab = () => { if (window.history.length > 1 && document.referrer.indexOf(location.origin) === 0) window.history.back(); else location.href = 'index.html'; };   // `history` is the rewind list in this file, so use window.history
 for (const id of ['start', 'end']) {
-  const modal = $(id).querySelector('.modal'), back = Object.assign(document.createElement('button'), { type: 'button', className: 'go-back', style: 'margin-top:10px', onclick: id === 'start' ? leaveLab : () => { $(id).hidden = true; } });
+  const modal = $(id).querySelector('.modal'), back = Object.assign(document.createElement('button'), { type: 'button', className: 'go-back', style: 'margin-top:10px', onclick: id === 'start' ? () => ($('start').dataset.mode === 'new' ? ($('start').hidden = true) : leaveLab()) : () => { $(id).hidden = true; } });
   const ic = icon('arrow-right', { size: 14 }); ic.style.cssText = 'display:inline-block;transform:scaleX(-1);vertical-align:-2px;margin-right:4px'; back.append(ic, 'Go Back');
   modal.append(back);
 }
