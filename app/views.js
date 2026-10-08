@@ -13,6 +13,15 @@ import { invoiceSettingsCard, startInvoice } from './views4.js';
 const KIND = { sale: 'Sale', purchase: 'Purchase', expense: 'Expense', salary: 'Salary' };
 const card = (title, ...kids) => h('section', { class: 'card' }, h('h3', {}, title), ...kids);
 const empty = (t) => h('p', { class: 'mu' }, t);
+const emptyState = (iconPath, title, desc, actionBtn = null) =>
+  h('div', { class: 'empty-state-wrap' },
+    h('svg', { viewBox: '0 0 24 24', width: '48', height: '48', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' },
+      h('path', { d: iconPath })
+    ),
+    h('h4', {}, title),
+    h('p', { class: 'mu small' }, desc),
+    actionBtn
+  );
 const download = (name, text, type = 'text/csv') => h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name }).click();
 
 function ring(score, label, suffix = '') {
@@ -250,8 +259,8 @@ function dashboard(S, A) {
       card("Today's quests", ...QUESTS.map((q) => { const d = q.done(S.ctx); return h('div', { class: 'quest ' + (d ? 'done' : '') }, h('i', {}, d ? icon('check', { size: 14 }) : ''), h('div', {}, h('b', {}, q.title), h('small', {}, `${q.desc}${q.progress && !d ? ' · ' + q.progress(S.ctx) : ''}`)), h('em', {}, `+${q.xp} XP`)); })),
       rewardCard(S, A)),
     h('div', { class: 'grid2' },
-      card(`Needs attention (${alerts.length})`, ...(alerts.length ? alerts.slice(0, 6).map(alertRow) : [empty(S.entries.length ? 'All clear. Nothing needs your attention.' : 'No data yet. Add a transaction or load sample data in Settings.')])),
-      card('Next 14 days', ...(s.upcoming.length ? s.upcoming.map((u) => h('div', { class: 'up' }, h('span', { class: 'dot ' + u.dir }), h('div', {}, h('b', {}, u.party), h('small', {}, `${u.dir === 'in' ? 'Collect' : 'Pay'} by ${u.due_date}`)), h('em', {}, (u.dir === 'in' ? '+' : '−') + inr(u.total)))) : [empty('Nothing due in the next 14 days.')]))),
+      card(`Needs attention (${alerts.length})`, ...(alerts.length ? alerts.slice(0, 6).map(alertRow) : [emptyState('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', S.entries.length ? 'All clear' : 'No activity yet', S.entries.length ? 'Nothing needs your attention right now.' : 'Add your first transaction or load sample data in Settings to see live alerts.', !S.entries.length && S.can('write') ? h('button', { class: 'pri sm', onclick: () => A.go('transactions') }, '+ Add transaction') : null)])),
+      card('Next 14 days', ...(s.upcoming.length ? s.upcoming.map((u) => h('div', { class: 'up' }, h('span', { class: 'dot ' + u.dir }), h('div', {}, h('b', {}, u.party), h('small', {}, `${u.dir === 'in' ? 'Collect' : 'Pay'} by ${u.due_date}`)), h('em', {}, (u.dir === 'in' ? '+' : '−') + inr(u.total)))) : [emptyState('M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'Nothing due soon', 'No receivables or payables scheduled for the next 14 days.')]))),
     card('Income vs spend (6 months)', chart(s.monthly), h('p', { class: 'small mu' }, 'Hover or tap bars for detailed breakdown. Green = Sales · Grey = Spend & Payroll.')));
 }
 
@@ -648,15 +657,26 @@ function compliance(S, A) {
       h('td', { class: 'acts' }, !f.saved && (f.type === 'GSTR3B' ? amt : null), !f.saved && h('button', { class: 'pri', onclick: () => A.file(f.type, f.period, f.due_date, +amt.value || 0) }, 'Mark filed')));
   });
   return h('div', { class: 'stack' },
-    card('Filing calendar', h('p', { class: 'mu small' }, 'Mark a return as filed after you file it on the GST portal. Filing on or before the due date earns +40 XP and builds your compliance streak.'),
-      h('div', { class: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, ...['Return', 'Period', 'Due', 'Net tax', 'Status', ''].map((t) => h('th', {}, t)))), h('tbody', {}, ...rows)))),
-    card('GST position', h('div', { class: 'row' }, h('span', { class: 'mu' }, 'Month'), h('select', { onchange: (e) => { gstMonth = e.target.value; A.render(); } }, ...months.map((m) => h('option', { value: m, selected: m === gstMonth }, m)))),
-      h('div', { class: 'kpis' }, h('div', { class: 'kpi' }, h('span', {}, 'Output tax (sales)'), h('b', {}, inr(g.output.cgst + g.output.sgst + g.output.igst)), h('small', {}, hd(g.output))),
+    card('Filing calendar',
+      h('p', { class: 'mu small' }, 'Mark a return as filed after you file it on the GST portal. Filing on or before the due date earns +40 XP and builds your compliance streak.'),
+      h('div', { class: 'scroll' },
+        h('table', {},
+          h('thead', {}, h('tr', {}, ...['Return', 'Period', 'Due', 'Net tax', 'Status', ''].map((t) => h('th', {}, t)))),
+          h('tbody', {}, ...(rows.length ? rows : [h('tr', {}, h('td', { colSpan: 6, class: 'empty-table-cell' }, emptyState('M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', 'All filings up to date', 'No statutory returns pending or scheduled for filing.')))])))
+      )
+    ),
+    card('GST position',
+      h('div', { class: 'row' }, h('span', { class: 'mu' }, 'Month'), h('select', { onchange: (e) => { gstMonth = e.target.value; A.render(); } }, ...months.map((m) => h('option', { value: m, selected: m === gstMonth }, m)))),
+      h('div', { class: 'kpis' },
+        h('div', { class: 'kpi' }, h('span', {}, 'Output tax (sales)'), h('b', {}, inr(g.output.cgst + g.output.sgst + g.output.igst)), h('small', {}, hd(g.output))),
         h('div', { class: 'kpi' }, h('span', {}, 'Input credit (valid GSTIN)'), h('b', {}, inr(g.itc.cgst + g.itc.sgst + g.itc.igst)), h('small', {}, hd(g.itc))),
         h('div', { class: 'kpi' }, h('span', {}, 'Net payable'), h('b', {}, inr(g.net.total)), h('small', {}, hd(g.net.payable))),
-        h('div', { class: 'kpi ' + (g.itcAtRisk ? 'bad' : '') }, h('span', {}, 'Credit at risk'), h('b', {}, inr(g.itcAtRisk)), h('small', {}, `${g.itcRiskRows.length} bill(s) without valid GSTIN`))),
+        h('div', { class: 'kpi ' + (g.itcAtRisk ? 'bad' : '') }, h('span', {}, 'Credit at risk'), h('b', {}, inr(g.itcAtRisk)), h('small', {}, `${g.itcRiskRows.length} bill(s) without valid GSTIN`))
+      ),
       ...g.itcRiskRows.map((r) => h('div', { class: 'al med' }, `${r.party} · ${r.number || 'no number'} · ${inr(r.tax.total)} credit lost until the supplier GSTIN is corrected`)),
-      h('p', { class: 'mu small' }, 'Planning estimates only. Verify with your Chartered Accountant before filing.')));
+      h('p', { class: 'mu small' }, 'Planning estimates only. Verify with your Chartered Accountant before filing.')
+    )
+  );
 }
 
 // ---------------------------------------------------------------- Insights
@@ -749,7 +769,14 @@ function rewards(S, A) {
   const L = S.level, earned = new Set(S.badges.map((b) => b.code)), lb = h('div', { class: 'mu' }, 'Loading…');
   A.leaderboard().then((rows) => {
     lb.textContent = '';
-    if (!rows.length) lb.append(empty(S.repo.mode === 'cloud' ? 'No one has joined yet. Opt in under Settings to appear here.' : 'Leaderboard needs a signed-in account.'));
+    if (!rows.length) {
+      lb.append(emptyState(
+        'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+        S.repo.mode === 'cloud' ? 'No players yet' : 'Leaderboard inactive in demo',
+        S.repo.mode === 'cloud' ? 'Opt in under Settings to showcase your health score and XP.' : 'Sign in to join the company-wide XP leaderboard.',
+        h('button', { class: 'pri sm', onclick: () => A.go('settings') }, 'Go to Settings')
+      ));
+    }
     rows.forEach((r, i) => lb.append(h('div', { class: 'up' }, h('b', {}, `#${i + 1}`), h('div', {}, h('b', {}, r.nickname), h('small', {}, `Health ${r.health ?? '—'}`)), h('em', {}, `${r.xp} XP`))));
   });
 
@@ -808,7 +835,7 @@ function audit(S, A) {
     h('div', { class: 'row' }, h('button', { class: 'pri', onclick: async () => { const bad = await S.ledger.verify(); status.textContent = bad ? `Tampered at #${bad}` : `Verified · ${S.ledger.entries.length} of your records`; status.classList.toggle('bad', !!bad); } }, 'Verify my chain'), status,
       h('span', { class: 'sp' }), h('button', { onclick: () => download(`audit-${today()}.json`, JSON.stringify(rows.map(e2), null, 2), 'application/json') }, 'Export')),
     h('div', { class: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, ...['#', 'Date', 'Who', 'Action', 'Why', 'Hash'].map((x) => h('th', {}, x)))),
-      h('tbody', {}, ...(rows.length ? rows.map((r) => { const e = e2(r); return h('tr', {}, h('td', {}, String(e.n)), h('td', {}, e.day), h('td', {}, e.agent), h('td', {}, e.action), h('td', {}, e.why), h('td', { class: 'mono' }, (e.hash || '').slice(0, 10))); }) : [h('tr', {}, h('td', { colSpan: 6, class: 'mu' }, 'No activity yet.'))])))));
+      h('tbody', {}, ...(rows.length ? rows.map((r) => { const e = e2(r); return h('tr', {}, h('td', {}, String(e.n)), h('td', {}, e.day), h('td', {}, e.agent), h('td', {}, e.action), h('td', {}, e.why), h('td', { class: 'mono' }, (e.hash || '').slice(0, 10))); }) : [h('tr', {}, h('td', { colSpan: 6, class: 'empty-table-cell' }, emptyState('M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', 'No audit activity yet', 'Financial events, ledger entries, and admin actions are cryptographically sealed here with SHA-256 hashes.')))])))));
 }
 
 function recurringCard(S, A) {

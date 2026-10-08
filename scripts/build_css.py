@@ -2,7 +2,7 @@
 Run after editing any CSS:  python scripts/build_css.py     (also: npm run build:css)"""
 import os, re, gzip
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ORDER = ['app.css', 'components.css', 'theme-light.generated.css', 'theme.css', 'workflow.css', 'apple.css']
+ORDER = ['app.css', 'components.css', 'theme-light.generated.css', 'theme.css', 'workflow.css', 'apple.css', 'ui4.css']
 
 def minify(css):
     css = re.sub(r'/\*.*?\*/', '', css, flags=re.S)

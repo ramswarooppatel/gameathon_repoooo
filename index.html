@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Oxro Labs · Finance Desk</title>
+<meta name="description" content="Oxro Labs Finance Desk: GST invoices, e-way bill data, approvals, cash forecasting and a tamper-evident audit trail for Indian businesses.">
+<link rel="apple-touch-icon" href="public/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="public/logo-64.png" type="image/png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#08110e">
 <script>(function(){try{var p=localStorage.getItem('myf-theme')||'system',l=p==='light'||(p==='system'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.dataset.theme=l?'light':'dark';document.documentElement.dataset.fs=localStorage.getItem('myf-fs')||'md';document.documentElement.dataset.contrast=localStorage.getItem('myf-contrast')||'normal';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>
 <link rel="preconnect" href="https://esm.sh" crossorigin><link rel="preload" href="app/bundle.min.css" as="style"><link rel="stylesheet" href="app/bundle.min.css"><link rel="modulepreload" href="app/main.js"><link rel="modulepreload" href="app/views.js"></head>
@@ -50,6 +54,14 @@
         <button id="signout" class="signout-btn" aria-label="Sign out"><svg class="so-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="so-label">Sign out</span></button>
       </div>
     </header>
+
+    <div id="demo-banner" class="demo-mode-banner" hidden>
+      <span class="demo-text">
+        <span class="demo-dot"></span>
+        <span>Demo data lives only in this browser · Sign in to sync</span>
+      </span>
+      <button type="button" onclick="location.hash='settings'">Settings</button>
+    </div>
 
     <main id="view"></main>
     <footer class="app-footer" role="contentinfo">
@@ -170,15 +182,90 @@
       const el = document.getElementById('top-page-name');
       if (el) el.textContent = PAGE_NAMES[v] || v.charAt(0).toUpperCase() + v.slice(1);
 
+      // Sync org name in breadcrumb from #org
+      const orgEl = document.getElementById('org');
+      const topOrgEl = document.getElementById('top-org-name');
+      if (orgEl && topOrgEl) {
+        topOrgEl.textContent = orgEl.textContent || 'Oxro Labs';
+      }
+
       // Sync active state on mobile bottom nav tabs & drawer items
       document.querySelectorAll('.mb-tab[data-v], .drawer-item[data-v]').forEach(tab => {
         tab.classList.toggle('on', tab.dataset.v === v);
       });
     }
 
+    // Mode Observer on #mode (Demo vs Cloud)
+    function updateDemoBanner() {
+      const modeEl = document.getElementById('mode');
+      const banner = document.getElementById('demo-banner');
+      if (!modeEl || !banner) return;
+      const isDemo = modeEl.textContent.toLowerCase().includes('demo');
+      banner.hidden = !isDemo;
+    }
+
+    const modeEl = document.getElementById('mode');
+    if (modeEl) {
+      const modeObserver = new MutationObserver(updateDemoBanner);
+      modeObserver.observe(modeEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    // Role & Permissions Observer on #who
+    function updateRoleAndNav() {
+      const whoEl = document.getElementById('who');
+      const rolePill = document.getElementById('role-pill');
+      if (!whoEl || !rolePill) return;
+
+      const text = whoEl.textContent.toLowerCase();
+      let role = 'admin'; // default fallback
+      if (text.includes('viewer')) role = 'viewer';
+      else if (text.includes('finance')) role = 'finance';
+      else if (text.includes('admin')) role = 'admin';
+
+      // Update Role Pill
+      rolePill.textContent = role;
+      rolePill.className = `pill role-pill role-${role}`;
+
+      // Filter Role-Gated Navigation Items
+      document.querySelectorAll('[data-role]').forEach(el => {
+        const requiredRole = el.getAttribute('data-role');
+        if (requiredRole === 'admin') {
+          el.style.display = (role === 'admin') ? '' : 'none';
+        }
+      });
+    }
+
+    const whoEl = document.getElementById('who');
+    if (whoEl) {
+      const observer = new MutationObserver(updateRoleAndNav);
+      observer.observe(whoEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    // Sound Toggle State Sync
+    function syncSoundState() {
+      const isMuted = localStorage.getItem('myf-mute') === '1';
+      const label = document.getElementById('snd-label');
+      if (label) label.textContent = isMuted ? 'Sound off' : 'Sound on';
+    }
+
+    const sndBtn = document.getElementById('snd');
+    if (sndBtn) {
+      sndBtn.addEventListener('click', () => {
+        setTimeout(syncSoundState, 50);
+      });
+    }
+
     window.addEventListener('hashchange', updatePageName);
-    window.addEventListener('DOMContentLoaded', updatePageName);
+    window.addEventListener('DOMContentLoaded', () => {
+      updatePageName();
+      updateDemoBanner();
+      updateRoleAndNav();
+      syncSoundState();
+    });
     updatePageName();
+    updateDemoBanner();
+    updateRoleAndNav();
+    syncSoundState();
   })();
 </script>
 <script>if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js");</script>

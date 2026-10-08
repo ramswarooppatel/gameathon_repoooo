@@ -7,6 +7,15 @@ import { pnl, aging, topParties } from './reports.js';
 
 const card = (title, ...kids) => h('section', { class: 'card' }, h('h3', {}, title), ...kids);
 const empty = (t) => h('p', { class: 'mu' }, t);
+const emptyState = (iconPath, title, desc, actionBtn = null) =>
+  h('div', { class: 'empty-state-wrap' },
+    h('svg', { viewBox: '0 0 24 24', width: '48', height: '48', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' },
+      h('path', { d: iconPath })
+    ),
+    h('h4', {}, title),
+    h('p', { class: 'mu small' }, desc),
+    actionBtn
+  );
 const table = (head, rows, right = []) => h('div', { class: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, ...head.map((t, i) => h('th', { class: right.includes(i) ? 'n' : '' }, t)))), h('tbody', {}, ...rows)));
 const td = (v, right) => h('td', { class: right ? 'n' : '' }, v);
 const download = (name, text) => h('a', { href: URL.createObjectURL(new Blob([text], { type: 'text/csv' })), download: name }).click();
@@ -23,7 +32,7 @@ export function parties(S, A) {
   return h('div', { class: 'stack' },
     can && card('Add customer or vendor', form, h('p', { class: 'small mu' }, 'Saved parties autofill the GSTIN when you add a transaction, and the phone number powers one-click WhatsApp reminders.')),
     card(`Directory (${S.parties.length})`, S.parties.length ? table(['Type', 'Name', 'GSTIN', 'Contact', 'Open balance', ''], S.parties.map((p) => h('tr', {}, td(p.kind === 'vendor' ? 'Vendor' : 'Customer'), td(p.name), td(p.gstin || '—'), td([p.email, p.phone].filter(Boolean).join(' · ') || '—'), td(inr(owed(p)), true),
-      h('td', { class: 'acts' }, S.can('admin') && h('button', { onclick: () => confirm(`Delete ${p.name}?`) && A.removeParty(p.id) }, icon('x', { size: 14 }))))), [4]) : empty('No parties yet. Add your first customer or vendor above.')));
+      h('td', { class: 'acts' }, S.can('admin') && h('button', { onclick: () => confirm(`Delete ${p.name}?`) && A.removeParty(p.id) }, icon('x', { size: 14 }))))), [4]) : emptyState('M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', 'No parties saved yet', 'Add your customers and vendors to enable auto-fill GSTINs, balance tracking, and WhatsApp payment reminders.')));
 }
 
 // ---------------------------------------------------------------- Approvals
@@ -33,7 +42,7 @@ export function approvals(S, A) {
     S.can('admin') ? h('div', { class: 'acts' }, h('button', { class: 'pri', onclick: () => A.decide(r.id, true) }, 'Approve'), h('button', { onclick: () => { const n = prompt('Reason for rejecting (shown to the team):', ''); if (n !== null) A.decide(r.id, false, n); } }, 'Reject')) : h('span', { class: 'tag' }, 'Waiting for admin'));
   return h('div', { class: 'stack' },
     card(`Waiting for approval (${pending.length})`, h('p', { class: 'small mu' }, `Money-out entries above ${inr(lim)} created by non-admins need an admin's approval. Pending items are excluded from cash, GST and health until approved.`),
-      ...(pending.length ? pending.map(row) : [empty('Nothing waiting. You are all caught up.')])),
+      ...(pending.length ? pending.map(row) : [emptyState('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'All clear · Zero pending approvals', 'All high-value expenses and payroll items have been reviewed and approved.')])),
     decided.length > 0 && card('Recently rejected', ...decided.map((r) => h('div', { class: 'up' }, h('div', {}, h('b', {}, `${r.party} · ${inr(r.total)}`), h('small', {}, r.approval_note || 'No reason given')), S.can('write') && h('button', { onclick: () => A.remove(r.id) }, 'Remove')))));
 }
 
@@ -105,8 +114,18 @@ export function reports(S) {
   const months = [5, 4, 3, 2, 1, 0].map((i) => prevMonth(today().slice(0, 7), i)), rows = S.sum.rows, P = pnl(rows, months);
   const cats = [...new Set(P.flatMap((p) => Object.keys(p.byCat)))];
   const money = (n) => h('span', { class: n < 0 ? 'neg' : '' }, (n < 0 ? '−' : '') + inr(Math.abs(n)));
-  const ag = (dir) => table(['Bucket', 'Items', 'Amount'], aging(rows, today(), dir).map((b) => h('tr', {}, td(b.label), td(String(b.count)), td(inr(b.amount), true))), [2]);
-  const top = (dir) => { const t = topParties(rows, dir); return t.length ? table(['Party', 'Total'], t.map((x) => h('tr', {}, td(x.party), td(inr(x.amount), true))), [1]) : empty('No data yet.'); };
+  const ag = (dir) => {
+    const list = aging(rows, today(), dir);
+    return list.some((b) => b.count > 0)
+      ? table(['Bucket', 'Items', 'Amount'], list.map((b) => h('tr', {}, td(b.label), td(String(b.count)), td(inr(b.amount), true))), [2])
+      : emptyState('M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', `No ${dir === 'in' ? 'receivables' : 'payables'} aging`, `All ${dir === 'in' ? 'customer' : 'vendor'} invoices are settled.`);
+  };
+  const top = (dir) => {
+    const t = topParties(rows, dir);
+    return t.length
+      ? table(['Party', 'Total'], t.map((x) => h('tr', {}, td(x.party), td(inr(x.amount), true))), [1])
+      : emptyState('M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', `No ${dir === 'in' ? 'customer' : 'vendor'} volume yet`, 'Transaction totals will aggregate here automatically.');
+  };
   const gst = months.map((m) => ({ m, g: gstFor(rows, m) }));
   const csv = () => download(`pnl-${today()}.csv`, ['Month,Income,Spend,Net', ...P.map((p) => `${p.month},${p.income},${p.spend},${p.net}`)].join(String.fromCharCode(10)));
   
