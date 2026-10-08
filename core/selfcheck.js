@@ -7,6 +7,7 @@ import { calcPayslip, annualTax, tdsMonthly } from '../tax/payroll.js';
 import { buildRun, entriesFor, dueDates, paidOnTime, parseEmployeesCsv, payrollStreak, ecrText, bankCsv } from '../workspace/payroll.js';
 import { createLedger } from '../ledger/blackbox.js';
 import { createGame, nextDay, decide } from './engine.js';
+import { treasurer } from '../agents/treasurer.js';
 
 // GST
 assert.deepEqual(split(10000, 18, 'intra'), { cgst: 900, sgst: 900, igst: 0, total: 1800 });
@@ -123,6 +124,13 @@ assert.equal(PENT.reduce((a, x) => a + x.taxable, 0), PRUN.totals.net + PRUN.tot
 assert.equal(dueDates('2026-12').pf, '2027-01-15'); assert.ok(paidOnTime('2026-10', '2026-11-07') && !paidOnTime('2026-10', '2026-11-08'));
 assert.equal(parseEmployeesCsv('code,name,basic,pf\nE1,Neha,25000,yes\nE2,,1,').rows.length, 1); assert.equal(payrollStreak([{ kind: 'payroll_on_time', ref: '2026-09' }, { kind: 'payroll_on_time', ref: '2026-08' }], '2026-10'), 2);
 assert.ok(ecrText(PRUN.slips).split('\n')[0].split('#~#').length === 11); assert.ok(bankCsv(PRUN.slips, '2026-10').includes('Salary 2026-10'));
+
+// Treasurer big bill: recommend paying when cash is healthy, negotiating when tight; an unanswered card always pays on the due date.
+for (const [cash, first, tight] of [[200000, 'Pay on due date', false], [1000, 'Negotiate +10 days (2% fee)', true]]) {
+  const tg = createGame(42); tg.s.cash = cash; tg.s.day = 16; tg.s.payables.push({ id: 'B1', vendor: 'Apex', taxable: 50000, amt: 59000, dueDay: 21, paid: false });
+  const [bc] = treasurer(tg, [{ id: 'e', type: 'big_expense', payload: { billId: 'B1' } }]).filter((x) => x.topic === 'big_bill');
+  assert.equal(bc.options[0].label, first); assert.equal(bc.facts.tight, tight); assert.equal(bc.options[bc.defaultOption].label, 'Pay on due date');
+}
 
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {

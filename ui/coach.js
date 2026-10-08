@@ -28,7 +28,7 @@ export function recommendWhy(c) {
   const f = c.facts || {}, rec = c.options[0], other = c.options.slice(1).filter((o) => o.costInr > 0).sort((a, b) => a.costInr - b.costInr)[0];
   switch (c.topic) {
     case 'late_payment': return `Brings the payment forward at no cost${other ? `, without giving away ${inr(other.costInr)} (2%) of the invoice` : ''}.`;
-    case 'big_bill': return f.proj < 20000 ? `Cash would be only ${inr(f.proj)} on the due date. A 10-day delay costs ${inr(rec.costInr)} (2%) but protects payroll and GST.` : `Costs ${inr(rec.costInr)} (2%) for 10 more days. Cash looks sufficient on the due date, so this is worth it only if you need the room.`;
+    case 'big_bill': return f.tight ? `Cash would be only ${inr(f.proj)} on the due date. A 10-day delay costs ${inr(rec.costInr)} (2%) but protects payroll and GST.` : `Projected cash on the due date is ${inr(f.proj)}, enough to pay without straining payroll or GST. A delay would cost ${inr(f.fee)} (2%) for no need.`;
     case 'cash_gap_gst': case 'cash_gap_payroll': return rec.effect.type === 'chase' ? `Chasing ${f.topClient} (${inr(f.topAmt)}) pulls the money in within 3 days and costs nothing.` : `Delaying ${f.billVendor} 10 days frees cash before day ${f.day} for a 2% fee.`;
     case 'fraud': return `Costs nothing, and a call to a number you already hold settles it. Paying anyway risks losing ${inr(f.amt)}.`;
     case 'opportunity': return f.ok ? `Cash would still be ${inr(f.after)} after the spend, above the ₹25,000 safety line, so the margin is worth taking.` : `Cash would drop to ${inr(f.after)}, below the ₹25,000 safety line. Margin means little if payroll or GST goes unpaid.`;

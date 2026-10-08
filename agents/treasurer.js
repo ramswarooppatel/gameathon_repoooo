@@ -6,15 +6,16 @@ export function treasurer(g, events) {
   const s = g.s, cards = [];
   for (const e of events.filter((x) => x.type === 'big_expense')) {
     const b = s.payables.find((p) => p.id === e.payload.billId);
+    const proj = projectCash(s, b.dueDay), tight = proj < 20000;                      // same pressure line as the 'Pay on due date' risk below
+    const negotiate = opt('Negotiate +10 days (2% fee)', b.amt * 0.02, { type: 'delayBill', billId: b.id });
+    const pay = opt('Pay on due date', 0, { type: 'none' }, tight ? 'high' : 'low');
+    const options = tight ? [negotiate, pay] : [pay, negotiate];                       // options[0] = the recommendation for THIS situation
     cards.push(makeCard(g, {
       agent: 'treasurer', eventId: e.id, topic: 'big_bill',
-      facts: { billId: b.id, vendor: b.vendor, amt: b.amt, dueDay: b.dueDay, itc: b.amt - b.taxable, proj: projectCash(s, b.dueDay), payrollDay: s.payroll.nextDay, gstDay: s.gst.nextDue },
+      facts: { billId: b.id, vendor: b.vendor, amt: b.amt, dueDay: b.dueDay, itc: b.amt - b.taxable, proj, tight, fee: negotiate.costInr, payrollDay: s.payroll.nextDay, gstDay: s.gst.nextDue },
       title: `Big bill ${inr(b.amt)} from ${b.vendor} due day ${b.dueDay}`,
-      why: [`ITC available ${inr(b.amt - b.taxable)}`, `Projected cash at due date ${inr(projectCash(s, b.dueDay))}`],
-      options: [
-        opt('Negotiate +10 days (2% fee)', b.amt * 0.02, { type: 'delayBill', billId: b.id }),
-        opt('Pay on due date', 0, { type: 'none' }, projectCash(s, b.dueDay) < 20000 ? 'high' : 'low'),
-      ],
+      why: [`ITC available ${inr(b.amt - b.taxable)}`, `Projected cash at due date ${inr(proj)}`],
+      options, defaultOption: options.indexOf(pay),                                    // unanswered = pay on the due date, exactly as before
     }));
   }
   const gstDue = netPayable(s.gst.output, s.gst.itc).total;
