@@ -64,12 +64,12 @@ async function finish(s) {
   const stars = !s.won ? 0 : s.health >= gs.health * 1.4 ? 3 : s.health >= 80 ? 2 : 1;
   const react = st.decisions ? st.reactionSum / st.decisions : null;
   $('end-t').textContent = s.won ? 'Quarter complete: business survived' : 'Business ran out of cash';
-  $('end-s').textContent = `Health ${s.health} vs unassisted ${gs.health} · ${'★'.repeat(stars) || 'no stars'} · rank ${last.rank} (${last.xp} XP) · fraud blocked ₹${Math.round(st.fraudBlocked)} (ghost lost ₹${Math.round(gs.stats.fraudLost)})`;
+  $('end-s').textContent = `Health ${s.health} vs unassisted ${gs.health} · ${stars ? stars + (stars === 1 ? ' star' : ' stars') : 'no stars'} · rank ${last.rank} (${last.xp} XP) · fraud blocked ₹${Math.round(st.fraudBlocked)} (ghost lost ₹${Math.round(gs.stats.fraudLost)})`;
   $('end-b').textContent = ''; last.missions.filter((m) => m.status === 'done').forEach((m) => $('end-b').append(Object.assign(document.createElement('span'), { textContent: m.title })));
   $('end').hidden = false;
   await db.finishRun({ status: s.won ? 'won' : 'lost', final_health: s.health, ghost_health: gs.health, final_cash: s.cash, ghost_cash: gs.cash, stars, reaction_avg: react, fraud_blocked: st.fraudBlocked, fraud_lost: st.fraudLost });
   $('lb').textContent = '';
-  for (const r of await db.leaderboard()) $('lb').append(Object.assign(document.createElement('li'), { textContent: `${r.nickname} — ${'★'.repeat(r.stars)} health ${r.final_health}` }));
+  for (const r of await db.leaderboard()) $('lb').append(Object.assign(document.createElement('li'), { textContent: `${r.nickname} — ${r.stars} stars health ${r.final_health}` }));
 }
 
 $('next').onclick = step;

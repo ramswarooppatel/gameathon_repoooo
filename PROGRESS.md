@@ -56,11 +56,16 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | **Learn (`#learn`)**: 8 money lessons with quizzes (pass 2/3 = 25 XP), Scholar badge | ✅ |
 | Command palette (Ctrl/⌘+K), smoother page transitions, a11y attributes now actually set (`aria-*`, `role`, `tabindex`) | ✅ |
 | End-to-end test `python scripts/flow_test.py` (workflow, planner, lesson, palette, theme) | ✅ passes |
+| **Apple-style UI pass**: no emoji anywhere in the app (outline SVG icon set in `app/icons.js`), calm surfaces, hairline borders, translucent sidebar/top bar, pill buttons, segmented controls, compact icon-only top bar on phones (`app/apple.css`) | ✅ |
+| **Performance**: CSS bundled + minified (`app/bundle.min.css`, 14 KB gzip), logo 414 KB to 9 KB, landing screenshots JPG to WebP (880 to 220 KB), stale-while-revalidate service worker, preconnect | ✅ |
 | Practice Lab (the 90-day simulation, `lab.html`) | ✅ |
 | Self-checks: `npm run check` (GST, ledger, workspace math, sim) | ✅ |
 
 ## Seed data
 `supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).
+
+## Build step
+After editing any file in `app/*.css` run `npm run build:css` (the app loads `app/bundle.min.css`). `npm run build:site` also regenerates the light-theme overrides and the landing/legal pages.
 
 ## Known limits
 - XP is awarded by the client (capped per event, unique per kind+ref). A determined user could cheat their own score; move to a Postgres function if this matters.

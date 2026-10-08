@@ -7,6 +7,8 @@
     "dev": "npx netlify-cli dev",
     "serve": "npx serve .",
     "check": "node core/selfcheck.js",
-    "sync-env": "node scripts/sync-env.mjs"
+    "sync-env": "node scripts/sync-env.mjs",
+    "build:css": "python scripts/build_css.py",
+    "build:site": "python scripts/gen_light_theme.py && python scripts/gen_site.py && python scripts/build_css.py"
   }
 }

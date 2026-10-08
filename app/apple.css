@@ -1,0 +1,156 @@
+/* Apple-style refinement layer. Loads last: calm surfaces, hairlines, translucent bars, pill controls, SF-style type.
+   Everything is token-driven, so light/dark and high-contrast keep working. */
+
+/* ---------------------------------------------------------------- tokens */
+html[data-theme="light"], html:not([data-theme]) {
+  --bg: #f5f5f7; --bg2: #ffffff; --bg-sidebar: rgba(255, 255, 255, 0.78); --card: #ffffff; --card-hover: #fafafc; --card-subtle: #f2f2f5;
+  --line: rgba(0, 0, 0, 0.09); --line-subtle: rgba(0, 0, 0, 0.055); --line-focus: #15803d;
+  --tx: #1d1d1f; --tx-title: #000000; --mu: #6e6e73; --mu-dark: #86868b;
+  --acc: #15803d; --acc-hover: #126a33; --acc2: #15803d; --acc-dark: #e5f5ea; --acc-glow: rgba(21, 128, 61, 0.12);
+  --warn: #b45309; --warn-bg: rgba(255, 159, 10, 0.16); --bad: #d70015; --bad-bg: rgba(255, 59, 48, 0.1); --info: #0066cc; --info-bg: rgba(0, 113, 227, 0.1);
+  --sh-sm: 0 1px 2px rgba(0, 0, 0, 0.04); --sh-md: 0 2px 10px rgba(0, 0, 0, 0.06); --sh-lg: 0 14px 34px rgba(0, 0, 0, 0.1); --sh-xl: 0 28px 70px rgba(0, 0, 0, 0.2);
+  --on-acc: #ffffff; --seg-on: #ffffff; --glass: rgba(255, 255, 255, 0.72); --scrim: rgba(0, 0, 0, 0.32);
+  --grad-primary: var(--acc); --grad-primary-hover: var(--acc-hover); --grad-bar: var(--acc);
+  --grad-bizcard: linear-gradient(140deg, #14803f 0%, #0c4a2a 100%);
+}
+html[data-theme="dark"] {
+  --bg: #0a0a0b; --bg2: #101012; --bg-sidebar: rgba(22, 22, 24, 0.78); --card: #1c1c1e; --card-hover: #232326; --card-subtle: #2a2a2d;
+  --line: rgba(255, 255, 255, 0.11); --line-subtle: rgba(255, 255, 255, 0.065); --line-focus: #30d158;
+  --tx: #f5f5f7; --tx-title: #ffffff; --mu: #a1a1a6; --mu-dark: #7d7d82;
+  --acc: #30d158; --acc-hover: #4ae071; --acc2: #5ee682; --acc-dark: #0f3d1c; --acc-glow: rgba(48, 209, 88, 0.16);
+  --warn: #ff9f0a; --warn-bg: rgba(255, 159, 10, 0.16); --bad: #ff453a; --bad-bg: rgba(255, 69, 58, 0.16); --info: #64d2ff; --info-bg: rgba(100, 210, 255, 0.14);
+  --sh-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-md: 0 4px 14px rgba(0, 0, 0, 0.45); --sh-lg: 0 16px 40px rgba(0, 0, 0, 0.55); --sh-xl: 0 30px 80px rgba(0, 0, 0, 0.7);
+  --on-acc: #04150d; --seg-on: #3a3a3d; --glass: rgba(28, 28, 30, 0.72); --scrim: rgba(0, 0, 0, 0.55);
+  --grad-primary: var(--acc); --grad-primary-hover: var(--acc-hover); --grad-bar: var(--acc);
+  --grad-bizcard: linear-gradient(140deg, #0f5c33 0%, #07281a 100%);
+}
+:root { --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-2xl: 24px; --fs-base: 14.5px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif; }
+
+/* ---------------------------------------------------------------- base */
+html[data-theme] body { font-family: var(--font); font-size: var(--fs-base); line-height: 1.47; background: var(--bg); color: var(--tx); letter-spacing: -0.003em; }
+body { text-rendering: optimizeLegibility; }
+h1, h2, h3, h4 { font-family: var(--font); letter-spacing: -0.02em; }
+main h2 { font-size: clamp(26px, 3.2vw, 34px); font-weight: 700; letter-spacing: -0.028em; margin: 4px 0 18px; color: var(--tx-title); }
+.kpi b, .big, .bc-cash b, .stat b, td.n, .lvl span { font-variant-numeric: tabular-nums; }
+::selection { background: var(--acc-glow); }
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.ico { display: inline-flex; vertical-align: -0.2em; line-height: 0; flex: none; }
+.ico svg { display: block; }
+:focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; border-radius: 8px; }
+
+/* ---------------------------------------------------------------- surfaces */
+html[data-theme] .card, html[data-theme] .kpi, html[data-theme] .panel, html[data-theme] .streak-card-wrap {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-sm); }
+html[data-theme] .card:hover, html[data-theme] .kpi:hover { border-color: var(--line); box-shadow: var(--sh-md); transform: none; }
+.card > h3, .card > .row > h3, section.card > h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; text-transform: none; color: var(--tx-title); margin: 0 0 12px; }
+.kpi span, .stat span, .hearts span { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; color: var(--mu); }
+.kpi b { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; }
+html[data-theme] .al { border-radius: var(--r-md); border: 0; border-left: 3px solid var(--warn); background: var(--warn-bg); }
+html[data-theme] .al.high { border-left-color: var(--bad); background: var(--bad-bg); }
+
+/* ---------------------------------------------------------------- sidebar + top bar (translucent) */
+html[data-theme] aside { background: var(--bg-sidebar); -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-right: 1px solid var(--line); }
+html[data-theme] nav a { border-radius: 10px; padding: 8px 12px; gap: 10px; color: var(--mu); font-weight: 500; border: 0; }
+html[data-theme] nav a:hover { background: var(--card-subtle); color: var(--tx-title); }
+html[data-theme] nav a.on { background: var(--acc-glow); color: var(--acc2); font-weight: 600; box-shadow: none; }
+html[data-theme] nav a.on::before { content: none; }
+.nav-icon, .mb-icon, .drawer-icon { width: 18px; height: 18px; flex: none; }
+nav a.lab { margin-top: 10px; border: 1px dashed var(--line); background: transparent; font-size: 13px; }
+html[data-theme] .brand b, html[data-theme] .brand-text b { letter-spacing: -0.015em; }
+html[data-theme] .logo { background: #fff; border-radius: 11px; box-shadow: 0 0 0 1px var(--line); }
+html[data-theme] .top { background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-bottom: 1px solid var(--line); min-height: 56px; }
+.breadcrumb { font-size: 14px; } .bc-page { font-weight: 600; letter-spacing: -0.01em; }
+.top .lv { min-width: 170px; } .top .lvrow b { color: var(--acc2); font-weight: 600; }
+.streak { display: inline-flex; align-items: center; gap: 5px; color: var(--warn); font-weight: 600; animation: none; }
+.streak::before { content: ""; width: 15px; height: 15px; background: currentColor; flex: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ---------------------------------------------------------------- controls */
+html[data-theme] button, html[data-theme] .btn { font-family: var(--font); font-size: 14px; font-weight: 500; letter-spacing: -0.005em; color: var(--tx); background: var(--card-subtle); border: 0; border-radius: 999px; padding: 8px 16px; min-height: 36px; box-shadow: none; cursor: pointer; }
+html[data-theme] button:hover:not(:disabled) { background: color-mix(in srgb, var(--card-subtle) 78%, var(--tx) 10%); border: 0; }
+html[data-theme] button.pri, html[data-theme] .btn.pri { background: var(--acc); color: var(--on-acc); font-weight: 600; }
+html[data-theme] button.pri:hover:not(:disabled), html[data-theme] .btn.pri:hover { background: var(--acc-hover); }
+html[data-theme] button.sm, html[data-theme] button.acts button { min-height: 30px; padding: 4px 12px; font-size: 13px; }
+html[data-theme] .acts button { min-height: 30px; padding: 4px 12px; font-size: 13px; }
+html[data-theme] button:disabled { opacity: 0.45; cursor: not-allowed; }
+html[data-theme] .top-actions button { background: transparent; color: var(--mu); padding: 6px 12px; }
+html[data-theme] .top-actions button:hover { background: var(--card-subtle); color: var(--tx); }
+.snd-btn { gap: 6px; } .snd-icon { width: 16px; height: 16px; }
+html[data-theme] input, html[data-theme] select, html[data-theme] textarea { font-family: var(--font); font-size: 14.5px; background: var(--card-subtle); color: var(--tx); border: 1px solid transparent; border-radius: 10px; padding: 9px 12px; min-height: 38px; box-shadow: none; }
+html[data-theme] input::placeholder { color: var(--mu-dark); }
+html[data-theme] input:focus, html[data-theme] select:focus, html[data-theme] textarea:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 4px var(--acc-glow); background: var(--card); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--acc); min-height: 0; }
+html[data-theme] .seg { background: var(--card-subtle); border: 0; border-radius: 10px; padding: 3px; gap: 2px; display: inline-flex; overflow: visible; }
+html[data-theme] .seg button { border-radius: 8px; background: transparent; min-height: 30px; padding: 5px 14px; color: var(--tx); font-weight: 500; }
+html[data-theme] .seg button[aria-pressed="true"], html[data-theme] .seg button[aria-selected="true"] { background: var(--seg-on); color: var(--tx-title); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+
+/* ---------------------------------------------------------------- chips, tags, tables */
+html[data-theme] .pill, html[data-theme] .tag, .chip { border: 0; font-weight: 600; font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--card-subtle); color: var(--mu); }
+html[data-theme] .pill.good, html[data-theme] .tag.paid, .chip.good { background: var(--acc-glow); color: var(--acc2); }
+html[data-theme] .pill.warn, .chip.warn { background: var(--warn-bg); color: var(--warn); }
+html[data-theme] .tag.over, .chip.bad, html[data-theme] .pill.bad { background: var(--bad-bg); color: var(--bad); }
+.chip.info { background: var(--info-bg); color: var(--info); }
+html[data-theme] table { border-collapse: separate; border-spacing: 0; }
+html[data-theme] th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 600; color: var(--mu); background: transparent; border-bottom: 1px solid var(--line); padding: 10px 12px; }
+html[data-theme] td { border-bottom: 1px solid var(--line-subtle); padding: 12px; }
+html[data-theme] tbody tr:hover td { background: var(--card-subtle); }
+html[data-theme] tr:last-child td { border-bottom: 0; }
+.bar { height: 6px; background: var(--card-subtle); border-radius: 999px; } .bar u { background: var(--acc); border-radius: 999px; }
+.bar.watch u { background: var(--warn); } .bar.over u { background: var(--bad); }
+
+/* ---------------------------------------------------------------- hero card, stories, quests */
+html[data-theme] .bizcard { border-radius: 22px; box-shadow: var(--sh-lg); border: 0; }
+html[data-theme] .story { border-radius: var(--r-xl); border: 0; box-shadow: var(--sh-sm); }
+html[data-theme] .quest { border-bottom: 1px solid var(--line-subtle); }
+html[data-theme] .quest i { border: 1.5px solid var(--line); } html[data-theme] .quest.done i { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+.wf-hero { border-radius: 22px; box-shadow: var(--sh-md); }
+html[data-theme] .badge { border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--card-subtle); }
+html[data-theme] .badge.on { background: var(--acc-glow); border-color: transparent; }
+.badge-symbol, .streak-flame-icon, .badge-modal-icon { color: var(--warn); } .badge:not(.on) .badge-symbol { color: var(--mu-dark); filter: none; opacity: 1; }
+.badge-modal-icon.locked { color: var(--mu-dark); } .badge-modal-icon.earned { color: var(--warn); }
+.strip-bubble .ico { color: inherit; }
+
+/* ---------------------------------------------------------------- overlays, dialogs, toasts */
+html[data-theme] .overlay { background: var(--scrim); -webkit-backdrop-filter: blur(10px) saturate(140%); backdrop-filter: blur(10px) saturate(140%); }
+html[data-theme] .modal, html[data-theme] .dlg { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-2xl); box-shadow: var(--sh-xl); }
+html[data-theme] dialog::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+html[data-theme] .toast { background: rgba(28, 28, 30, 0.88); color: #f5f5f7; border: 0; border-radius: 16px; box-shadow: var(--sh-lg); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); padding: 12px 16px; }
+html[data-theme] .toast b { color: #8cf0a8; } html[data-theme] .toast.bad b { color: #ff8a80; }
+html[data-theme] .notice { background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border: 1px solid var(--line); border-radius: 18px; }
+html[data-theme] .pal { border-radius: 20px; background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(30px); backdrop-filter: saturate(180%) blur(30px); }
+html[data-theme] .pal-item[aria-selected="true"] { background: var(--acc-glow); outline: 0; }
+html[data-theme] .pal-input { background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+.pal-btn::before { content: none !important; } .pal-btn svg { width: 16px; height: 16px; flex: none; } .pal-foot kbd svg { display: block; }
+.pal-btn { gap: 8px; }
+
+/* ---------------------------------------------------------------- mobile bar + drawer */
+html[data-theme] .mobile-bottom-nav { background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-top: 1px solid var(--line); box-shadow: none; }
+html[data-theme] .mb-tab { color: var(--mu-dark); border-radius: 12px; font-weight: 500; } html[data-theme] .mb-tab.on { color: var(--acc2); background: transparent; }
+html[data-theme] .mobile-drawer { background: var(--card); border-radius: 22px 22px 0 0; border: 0; box-shadow: var(--sh-xl); }
+html[data-theme] .drawer-item { border-radius: 14px; background: var(--card-subtle); border: 0; color: var(--tx); } html[data-theme] .drawer-item.on { background: var(--acc-glow); color: var(--acc2); }
+html[data-theme] .drawer-backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+
+/* ---------------------------------------------------------------- footer */
+.app-footer { border-top: 1px solid var(--line-subtle); font-size: 12.5px; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* gradient hero must beat the generic .card surface rule above */
+html[data-theme] .card.wf-hero, html[data-theme] section.wf-hero { background: var(--grad-bizcard); color: #fff; border: 0; box-shadow: var(--sh-md); }
+html[data-theme] .wf-hero h2, html[data-theme] .wf-hero .wf-title { color: #fff; }
+
+/* text on gradient surfaces stays light in both themes */
+html[data-theme] .story, html[data-theme] .story b, html[data-theme] .story span, html[data-theme] .bizcard, html[data-theme] .bizcard b, html[data-theme] .bizcard small, html[data-theme] .bizcard span { color: #fff; }
+html[data-theme] .story span, html[data-theme] .bizcard small { opacity: 0.85; }
+/* tables: keep numbers and dates on one line; long text cells wrap */
+html[data-theme] td { white-space: nowrap; }
+html[data-theme] td.party-cell, html[data-theme] td.mono, html[data-theme] td.wrap, html[data-theme] .compare td, html[data-theme] .legal td { white-space: normal; }
+
+/* top bar: compact on phones (icons only), no wrapping */
+.top-actions { flex-wrap: nowrap; gap: 2px; } .top-actions button { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 640px) { .top-actions .user-badge, .snd-btn #snd-label, .signout-btn .so-label, .theme-btn .theme-label { display: none; } html[data-theme] .top-actions button { padding: 7px 9px; min-width: 36px; justify-content: center; } .top { gap: 8px; } }
+@media (max-width: 1100px) { .top .lv, .top-actions .user-badge, .pal-btn kbd { display: none; } }
+@media (max-width: 960px) { .snd-btn #snd-label, .signout-btn .so-label, .theme-btn .theme-label, .pal-btn span { display: none; } html[data-theme] .top-actions button { padding: 7px 9px; min-width: 36px; justify-content: center; } .top-status-pills .pill:not(.role-pill) { display: none; } }
+.top { overflow: hidden; }

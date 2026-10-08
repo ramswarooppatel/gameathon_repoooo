@@ -7,6 +7,7 @@ import { ask } from '../ai/groq.js';
 import { scratch, confetti } from './fx.js';
 import { parseBank, matchBank } from './bank.js';
 import { appearanceCard } from './extras.js';
+import { icon } from './icons.js';
 
 const KIND = { sale: 'Sale', purchase: 'Purchase', expense: 'Expense', salary: 'Salary' };
 const card = (title, ...kids) => h('section', { class: 'card' }, h('h3', {}, title), ...kids);
@@ -162,7 +163,7 @@ function onboarding(S, A) {
   const n = steps.filter((x) => x[2]).length;
   if (n === steps.length) return null;
   return card(`Get started · ${n}/${steps.length}`, h('i', { class: 'bar' }, h('u', { style: `width:${(n / steps.length) * 100}%` })),
-    ...steps.map(([t, d, done, go]) => h('div', { class: 'quest ' + (done ? 'done' : '') }, h('i', {}, done ? '✓' : ''), h('div', {}, h('b', {}, t), h('small', {}, d)), !done && h('button', { onclick: () => A.go(go) }, 'Do it'))));
+    ...steps.map(([t, d, done, go]) => h('div', { class: 'quest ' + (done ? 'done' : '') }, h('i', {}, done ? icon('check', { size: 14 }) : ''), h('div', {}, h('b', {}, t), h('small', {}, d)), !done && h('button', { onclick: () => A.go(go) }, 'Do it'))));
 }
 
 
@@ -182,7 +183,7 @@ function dashboard(S, A) {
   const k = (l, v, sub, key, cls = '', sparkVals = null, delta = null) => h('div', { class: 'kpi ' + cls },
     h('div', { class: 'kpi-head' },
       h('span', {}, l),
-      delta != null ? h('span', { class: 'delta-pill ' + (delta >= 0 ? 'pos' : 'neg') }, `${delta >= 0 ? '▲ +' : '▼ '}${delta}%`) : null
+      delta != null ? h('span', { class: 'delta-pill ' + (delta >= 0 ? 'pos' : 'neg') }, icon(delta >= 0 ? 'arrow-up' : 'arrow-down', { size: 12 }), `${delta >= 0 ? '+' : ''}${delta}%`) : null
     ),
     h('div', { class: 'kpi-body' },
       num(v, key),
@@ -243,7 +244,7 @@ function dashboard(S, A) {
       k('Input credit at risk', s.gst.itcAtRisk, 'fix supplier GSTINs', 'itc', s.gst.itcAtRisk ? 'bad' : '')
     ),
     h('div', { class: 'grid2' },
-      card("Today's quests", ...QUESTS.map((q) => { const d = q.done(S.ctx); return h('div', { class: 'quest ' + (d ? 'done' : '') }, h('i', {}, d ? '✓' : ''), h('div', {}, h('b', {}, q.title), h('small', {}, `${q.desc}${q.progress && !d ? ' · ' + q.progress(S.ctx) : ''}`)), h('em', {}, `+${q.xp} XP`)); })),
+      card("Today's quests", ...QUESTS.map((q) => { const d = q.done(S.ctx); return h('div', { class: 'quest ' + (d ? 'done' : '') }, h('i', {}, d ? icon('check', { size: 14 }) : ''), h('div', {}, h('b', {}, q.title), h('small', {}, `${q.desc}${q.progress && !d ? ' · ' + q.progress(S.ctx) : ''}`)), h('em', {}, `+${q.xp} XP`)); })),
       rewardCard(S, A)),
     h('div', { class: 'grid2' },
       card(`Needs attention (${alerts.length})`, ...(alerts.length ? alerts.slice(0, 6).map(alertRow) : [empty(S.entries.length ? 'All clear. Nothing needs your attention.' : 'No data yet. Add a transaction or load sample data in Settings.')])),
@@ -273,13 +274,13 @@ function entryDialog(S, A) {
     }
     const ok = validGstin(gstin.value);
     if (ok) {
-      gstinStatus.textContent = '✓ Valid GSTIN (Mod-36 Verified)';
+      gstinStatus.replaceChildren(icon('check', { size: 14 }), ' Valid GSTIN (checksum verified)');
       gstinStatus.className = 'gstin-status-msg good small';
       gstin.classList.remove('err');
       gstin.classList.add('valid');
       if (validGstin(S.profile.gstin || '')) supply.value = guessSupply(S.profile.gstin, gstin.value);
     } else {
-      gstinStatus.textContent = '✕ Invalid GSTIN format or checksum. Input credit may be flagged.';
+      gstinStatus.replaceChildren(icon('x', { size: 14 }), ' Invalid GSTIN format or checksum. Input credit may be flagged.');
       gstinStatus.className = 'gstin-status-msg bad small';
       gstin.classList.remove('valid');
       gstin.classList.add('err');
@@ -362,7 +363,7 @@ function entryDialog(S, A) {
   supply.onchange = updateTaxPreview;
 
   const taxPreviewBox = h('div', { class: 'tax-preview-card' },
-    h('h4', { class: 'tax-preview-title' }, '⚡ Live Tax Summary'),
+    h('h4', { class: 'tax-preview-title' }, icon('bolt', { size: 16 }), ' Live tax summary'),
     h('div', { class: 'tax-preview-row' }, h('span', {}, 'Taxable Amount:'), prevTaxable),
     cgstRow,
     sgstRow,
@@ -388,7 +389,7 @@ function entryDialog(S, A) {
   const dlg = h('dialog', { class: 'dlg wide entry-dialog-modal' },
     h('div', { class: 'dialog-head' },
       h('h3', {}, 'Add New Transaction'),
-      h('button', { type: 'button', class: 'dialog-close-btn', onclick: () => dlg.close(), title: 'Close (Esc)' }, '✕')
+      h('button', { type: 'button', class: 'dialog-close-btn', onclick: () => dlg.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('x', { size: 16 }))
     ),
     f,
     dl
@@ -492,7 +493,7 @@ function transactions(S, A) {
       toast('Marked as paid', `Updated ${ids.length} transaction(s)`, 'good');
       draw();
     }
-  }, '✓ Mark as Paid');
+  }, icon('check', { size: 14 }), ' Mark as paid');
   const bulkClearBtn = h('button', {
     class: 'sm',
     onclick: () => {
@@ -516,7 +517,7 @@ function transactions(S, A) {
     thead.textContent = '';
     const thSort = (col, label, isNum = false) => {
       const active = txSortCol === col;
-      const icon = active ? (txSortAsc ? ' ▲' : ' ▼') : ' ↕';
+      const sortIcon = active ? icon(txSortAsc ? 'arrow-up' : 'arrow-down', { size: 12 }) : icon('arrows-v', { size: 12 });
       const th = h('th', {
         class: `sortable-th ${isNum ? 'n' : ''} ${active ? 'active' : ''}`,
         tabindex: '0',
@@ -528,7 +529,7 @@ function transactions(S, A) {
           draw();
         },
         onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); } }
-      }, h('div', { class: 'th-content' }, label, h('span', { class: 'sort-icon' }, icon)));
+      }, h('div', { class: 'th-content' }, label, h('span', { class: 'sort-icon' }, sortIcon)));
       return th;
     };
 
@@ -638,7 +639,7 @@ function transactions(S, A) {
           class: 'sm del-btn',
           title: 'Delete Entry',
           onclick: () => confirm('Delete this transaction? This action is permanently recorded in the audit trail.') && A.remove(r.id)
-        }, '✕')
+        }, icon('x', { size: 14 }))
       );
 
       const cells = [
@@ -701,7 +702,7 @@ function transactions(S, A) {
   );
 
   const colToggleBtn = h('div', { class: 'col-toggle-wrap' },
-    h('button', { class: 'sm', onclick: toggleColMenu, title: 'Toggle visible columns' }, '⚙ Columns ▾'),
+    h('button', { class: 'sm', onclick: toggleColMenu, title: 'Toggle visible columns' }, icon('sliders', { size: 14 }), ' Columns ', icon('chevron-down', { size: 12 })),
     colMenu
   );
 
@@ -802,7 +803,7 @@ function streakHistoryStrip(S) {
       title: `${item.dateStr}: ${item.checkedIn ? 'Checked in (+10 XP)' : item.isToday ? 'Check in pending today' : 'No check in'}`
     },
       h('span', { class: 'strip-label' }, item.dayName),
-      h('div', { class: 'strip-bubble' }, item.checkedIn ? '✓' : item.isToday ? '•' : '—'),
+      h('div', { class: 'strip-bubble' }, item.checkedIn ? icon('check', { size: 14 }) : item.isToday ? icon('dot', { size: 10 }) : icon('minus', { size: 12 })),
       h('small', { class: 'strip-num' }, String(item.dayNum))
     ))
   );
@@ -810,7 +811,7 @@ function streakHistoryStrip(S) {
   return h('div', { class: 'streak-card-wrap' },
     h('div', { class: 'streak-header' },
       h('div', { class: 'streak-title-row' },
-        h('span', { class: 'streak-flame-icon' }, '🔥'),
+        h('span', { class: 'streak-flame-icon' }, icon('flame', { size: 26 })),
         h('b', {}, `${S.ctx.streak}-Day Active Streak`),
         h('span', { class: 'pill good' }, S.ctx.has('checkin', t) ? 'Active Today' : 'Pending Check-in')
       ),
@@ -829,7 +830,7 @@ function badgeDetailModal(badge, earned, S) {
   overlay.onclick = (e) => { if (e.target === overlay) close(); };
 
   const modal = h('div', { class: 'modal badge-modal-card' },
-    h('div', { class: 'badge-modal-icon ' + (earned ? 'earned' : 'locked') }, earned ? '🏆' : '🔒'),
+    h('div', { class: 'badge-modal-icon ' + (earned ? 'earned' : 'locked') }, icon(earned ? 'trophy' : 'lock', { size: 34 })),
     h('h3', { style: 'margin:0;font-size:var(--fs-lg)' }, badge.title),
     h('p', { class: 'mu', style: 'margin:4px 0' }, badge.desc),
     h('div', { class: 'badge-modal-meta' },
@@ -866,7 +867,7 @@ function rewards(S, A) {
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); badgeDetailModal(b, isEarned, S); } }
     },
       h('div', { class: 'badge-head' },
-        h('span', { class: 'badge-symbol' }, isEarned ? '🏆' : '🔒'),
+        h('span', { class: 'badge-symbol' }, icon(isEarned ? 'trophy' : 'lock', { size: 18 })),
         h('b', {}, b.title)
       ),
       h('small', {}, b.desc)

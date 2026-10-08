@@ -1,4 +1,5 @@
 // Company-workspace pages: Parties, Approvals, Reports, Team, Styleguide.
+import { icon } from './icons.js';
 import { h, inr, today, toast } from './util.js';
 import { validGstin } from '../tax/gst.js';
 import { gstFor, prevMonth } from '../workspace/calc.js';
@@ -22,7 +23,7 @@ export function parties(S, A) {
   return h('div', { class: 'stack' },
     can && card('Add customer or vendor', form, h('p', { class: 'small mu' }, 'Saved parties autofill the GSTIN when you add a transaction, and the phone number powers one-click WhatsApp reminders.')),
     card(`Directory (${S.parties.length})`, S.parties.length ? table(['Type', 'Name', 'GSTIN', 'Contact', 'Open balance', ''], S.parties.map((p) => h('tr', {}, td(p.kind === 'vendor' ? 'Vendor' : 'Customer'), td(p.name), td(p.gstin || '—'), td([p.email, p.phone].filter(Boolean).join(' · ') || '—'), td(inr(owed(p)), true),
-      h('td', { class: 'acts' }, S.can('admin') && h('button', { onclick: () => confirm(`Delete ${p.name}?`) && A.removeParty(p.id) }, '✕')))), [4]) : empty('No parties yet. Add your first customer or vendor above.')));
+      h('td', { class: 'acts' }, S.can('admin') && h('button', { onclick: () => confirm(`Delete ${p.name}?`) && A.removeParty(p.id) }, icon('x', { size: 14 }))))), [4]) : empty('No parties yet. Add your first customer or vendor above.')));
 }
 
 // ---------------------------------------------------------------- Approvals
@@ -121,7 +122,7 @@ export function reports(S) {
   return h('div', { class: 'stack' },
     printHeader,
     h('div', { class: 'row noprint' },
-      h('button', { class: 'pri', onclick: () => window.print() }, '🖨 Print / Save as PDF'),
+      h('button', { class: 'pri', onclick: () => window.print() }, icon('printer', { size: 16 }), ' Print / save as PDF'),
       h('button', { onclick: csv }, 'Export P&L (CSV)')
     ),
     card('Profit & loss (accrual, excl. GST)',

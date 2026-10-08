@@ -10,6 +10,7 @@ import * as V2 from './views2.js';
 import * as V3 from './views3.js';
 import { invoiceHtml } from './invoice.js';
 import { countUp, muted, setMuted } from './fx.js';
+import { iconSvg } from './icons.js';
 import { dueMonths } from './recurring.js';
 
 const S = { ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
@@ -279,7 +280,7 @@ function render() {
 window.addEventListener('hashchange', () => { view = location.hash.slice(1) || 'today'; render(); window.scrollTo({ top: 0 }); });
 
 // ---- auth + workspace setup + boot ---------------------------------------------
-function modal(...kids) { const box = $('#auth'); box.hidden = false; $('#app').hidden = true; const m = box.querySelector('.modal'); m.textContent = ''; m.append(h('span', { class: 'logo big' }, h('img', { src: 'public/logo.png', alt: '' })), ...kids); }
+function modal(...kids) { const box = $('#auth'); box.hidden = false; $('#app').hidden = true; const m = box.querySelector('.modal'); m.textContent = ''; m.append(h('span', { class: 'logo big' }, h('img', { src: 'public/logo-256.png', width: 90, height: 90, alt: '' })), ...kids); }
 const run = (msg, fn) => async () => { msg.textContent = 'Working…'; try { await fn(); } catch (x) { msg.textContent = x.message; } };
 
 const TERMS_VERSION = '2026-10-08';
@@ -343,6 +344,12 @@ function live() {
   setInterval(async () => { if (today() !== day0) { day0 = today(); if (await award('checkin', day0, XP.checkin, 'New day: daily check-in')) toast('New day', `${S.ctx.streak}-day streak`); await refresh(); } }, 60000);
 }
 $('#signout').onclick = () => A.signOut();
-$('#snd').textContent = muted() ? 'Sound off' : 'Sound on';
-$('#snd').onclick = () => { setMuted(!muted()); $('#snd').textContent = muted() ? 'Sound off' : 'Sound on'; };
+function paintSound() {
+  const off = muted(), b = $('#snd'), l = $('#snd-label'), i = b.querySelector('.snd-icon');
+  if (l) l.textContent = off ? 'Sound off' : 'Sound on';
+  if (i) i.outerHTML = iconSvg(off ? 'sound-off' : 'sound', 16).replace('<svg ', '<svg class="snd-icon" ');
+  b.setAttribute('aria-pressed', String(!off)); b.setAttribute('aria-label', off ? 'Turn sound on' : 'Turn sound off');
+}
+paintSound();
+$('#snd').onclick = () => { setMuted(!muted()); paintSound(); };
 boot();

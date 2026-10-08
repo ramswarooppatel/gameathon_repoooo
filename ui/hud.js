@@ -1,4 +1,5 @@
 import { netPayable } from '../tax/gst.js';
+import { icon } from '../app/icons.js';
 import { inr } from '../agents/card.js';
 
 const $ = (id) => document.getElementById(id);
@@ -43,7 +44,8 @@ export function renderProgress(p) {
   const ul = $('missions'); ul.textContent = '';
   for (const m of p.missions) {
     const li = document.createElement('li'); li.className = m.status;
-    const dot = Object.assign(document.createElement('div'), { className: 'dot', textContent: m.status === 'done' ? '✓' : m.status === 'failed' ? '×' : '' });
+    const dot = Object.assign(document.createElement('div'), { className: 'dot' });
+    if (m.status === 'done') dot.append(icon('check', { size: 12 })); else if (m.status === 'failed') dot.append(icon('x', { size: 12 }));
     const d = document.createElement('div');
     d.append(Object.assign(document.createElement('b'), { textContent: m.title }), Object.assign(document.createElement('span'), { textContent: m.desc }));
     li.append(dot, d); ul.append(li);

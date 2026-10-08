@@ -6,6 +6,7 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC = ['welcome.html', 'legal/terms.html', 'legal/privacy.html', 'legal/disclaimer.html', 'legal/accessibility.html']
 PAGES = ['dashboard', 'transactions', 'parties', 'approvals', 'compliance', 'reports', 'insights', 'rewards', 'audit', 'team', 'settings', 'styleguide', 'today', 'planner', 'learn']
+subprocess.run([sys.executable, os.path.join(ROOT, 'scripts', 'build_css.py')], check=True, stdout=subprocess.DEVNULL)
 srv = subprocess.Popen([sys.executable, '-m', 'http.server', '3122', '--directory', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 problems = []

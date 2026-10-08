@@ -1,5 +1,6 @@
 // Command palette: Ctrl/⌘+K to jump anywhere or run a common action. Keyboard-first, screen-reader friendly.
 import { theme } from './extras.js';
+import { iconSvg } from './icons.js';
 
 const PAGES = [['today', 'Today', 'Daily routine'], ['dashboard', 'Dashboard', 'Overview and rewards'], ['transactions', 'Transactions', 'Invoices, bills, payroll'], ['parties', 'Customers & vendors', 'Directory'], ['approvals', 'Approvals', 'Spend waiting for an admin'], ['compliance', 'GST & Compliance', 'Returns and GST position'], ['reports', 'Reports', 'P&L, aging, GST by month'], ['planner', 'Cash planner', '60-day forecast, budgets'], ['insights', 'Insights', 'AI CFO and stress test'], ['learn', 'Learn', 'Money lessons'], ['rewards', 'Team rewards', 'Streaks and badges'], ['audit', 'Audit trail', 'Who did what and why'], ['team', 'Team & access', 'Members and roles'], ['settings', 'Settings', 'Company, appearance']];
 const clickByText = (re) => setTimeout(() => [...document.querySelectorAll('button')].find((b) => re.test(b.textContent))?.click(), 400);
@@ -38,7 +39,7 @@ function onKey(e) {
 export function openPalette() {
   if (overlay || document.getElementById('app')?.hidden) return;
   prevFocus = document.activeElement; overlay = document.createElement('div'); overlay.className = 'overlay pal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Command palette');
-  overlay.innerHTML = '<div class="pal"><input class="pal-input" type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" placeholder="Search pages and actions…" autocomplete="off" spellcheck="false"><ul id="pal-list" class="pal-list" role="listbox" aria-label="Results"></ul><div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div>';
+  overlay.innerHTML = '<div class="pal"><input class="pal-input" type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" placeholder="Search pages and actions…" autocomplete="off" spellcheck="false"><ul id="pal-list" class="pal-list" role="listbox" aria-label="Results"></ul><div class="pal-foot"><span><kbd>' + iconSvg('arrow-up', 12) + '</kbd><kbd>' + iconSvg('arrow-down', 12) + '</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div>';
   document.body.append(overlay); input = overlay.querySelector('input'); list = overlay.querySelector('ul');
   overlay.addEventListener('click', (e) => e.target === overlay && close()); input.addEventListener('input', () => render(input.value)); document.addEventListener('keydown', onKey, true); render(); input.focus();
 }
@@ -46,6 +47,6 @@ document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.
 function mount() {
   const actions = document.querySelector('.top-actions'); if (!actions || actions.querySelector('.pal-btn')) return;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'pal-btn'; b.setAttribute('aria-label', 'Open command palette (Ctrl+K)');
-  b.innerHTML = '<span>Search</span><kbd>Ctrl K</kbd>'; b.addEventListener('click', openPalette); actions.prepend(b);
+  b.innerHTML = iconSvg('search', 16) + '<span>Search</span><kbd>Ctrl K</kbd>'; b.addEventListener('click', openPalette); actions.prepend(b);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();

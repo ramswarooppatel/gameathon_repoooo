@@ -4,6 +4,7 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 theme = sys.argv[1] if len(sys.argv) > 1 else 'light'; width = int(sys.argv[2]) if len(sys.argv) > 2 else 1440
 out = os.path.join(ROOT, 'deck', f'shots_{theme}_{width}'); os.makedirs(out, exist_ok=True)
+subprocess.run([sys.executable, os.path.join(ROOT, 'scripts', 'build_css.py')], check=True, stdout=subprocess.DEVNULL)
 srv = subprocess.Popen([sys.executable, '-m', 'http.server', '3125', '--directory', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1.2)
 def demo(pg):
     pg.wait_for_selector('#auth:not([hidden]) button, #app:not([hidden])', timeout=15000)

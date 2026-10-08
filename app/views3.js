@@ -3,6 +3,7 @@ import { h, inr, today as todayStr, toast } from './util.js';
 import { forecast, gstReserve, payPriority, collectionPlan, budgetStatus, monthCloseItems, tips, reminderFor, categoryOf } from '../workspace/planner.js';
 import { prevMonth, daysBetween } from '../workspace/calc.js';
 import { LESSONS, PASS, scoreQuiz } from './lessons.js';
+import { icon } from './icons.js';
 
 const card = (title, ...kids) => h('section', { class: 'card' }, title && h('h3', {}, title), ...kids);
 const empty = (t) => h('p', { class: 'mu' }, t);
@@ -73,7 +74,7 @@ export function workflow(S, A) {
       h('div', { class: 'acts' }, S.can('write') && h('button', { class: 'pri', onclick: () => { A.go('transactions'); openAddTransaction(); } }, '+ Add transaction'), S.can('write') && h('button', { onclick: () => { A.go('transactions'); setTimeout(() => [...document.querySelectorAll('button')].find((x) => /import bank/i.test(x.textContent))?.click(), 350); } }, 'Import bank CSV'),
         S.can('write') && !entriesToday && !nothing && h('button', { onclick: () => A.tick(T, 'nothing-to-record', true) }, 'Nothing to record today'))],
   };
-  const daily = h('div', { class: 'stack' }, ...steps.map((s) => h('section', { class: 'card wf-step ' + (s.done ? 'is-done' : '') }, h('div', { class: 'wf-head' }, h('span', { class: 'wf-n' }, s.done ? '✓' : String(s.n)), h('h3', {}, s.title), stateChip(s)), ...bodies[s.id])));
+  const daily = h('div', { class: 'stack' }, ...steps.map((s) => h('section', { class: 'card wf-step ' + (s.done ? 'is-done' : '') }, h('div', { class: 'wf-head' }, h('span', { class: 'wf-n' }, s.done ? icon('check', { size: 16 }) : String(s.n)), h('h3', {}, s.title), stateChip(s)), ...bodies[s.id])));
 
   // weekly (manual ticks keyed by ISO week)
   const wk = weekKey(T), WEEKLY = [['forecast', 'Review the 60-day cash forecast', 'planner'], ['bank', 'Reconcile bank transactions', 'transactions'], ['aging', 'Follow up every invoice over 30 days old', 'reports'], ['budget', 'Check budget vs actual', 'planner'], ['backup', 'Export transactions (CSV) as a backup', 'transactions']];
@@ -125,7 +126,7 @@ export function planner(S, A) {
       BS.length ? h('div', { class: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, ...['Category', 'Spent', 'Budget', 'Progress', ''].map((t, i) => h('th', { class: i === 1 ? 'n' : '' }, t)))), h('tbody', {}, ...budgetRows))) : empty('Add expenses to see categories here.'),
       S.can('admin') && BS.length ? h('div', { class: 'acts' }, h('button', { class: 'pri', onclick: () => A.saveBudgets({ ...budgets, ...edits }) }, 'Save budgets')) : null),
     card('Collections ladder', ...(P.collect.length ? P.collect.map((c) => h('div', { class: 'wf-item' }, h('div', { class: 'grow' }, h('b', {}, `${c.row.party} · ${inr(c.row.total)}`), h('small', { class: 'mu block' }, `${c.late > 0 ? c.late + ' days overdue' : 'due ' + c.row.due_date}`), h('span', { class: 'chip warn' }, c.stage.label), h('small', { class: 'mu block' }, c.stage.action)), h('div', { class: 'acts' }, S.can('write') && h('button', { onclick: () => A.remindStage(c.row.id, reminderFor(c.stage, c.row, S.profile.name, inr)) }, 'Send reminder')))) : [empty('Nothing overdue. Keep it that way.')]),
-      h('p', { class: 'small mu' }, 'Stages: friendly (1–7 days) → firm (8–30) → personal call (31–60) → escalate (60+). Confirm formal notices with your CA or lawyer.')));
+      h('p', { class: 'small mu' }, 'Stages: friendly (1–7 days), firm (8–30), personal call (31–60), then escalate (60+). Confirm formal notices with your CA or lawyer.')));
 }
 
 // ---------------------------------------------------------------- LEARN

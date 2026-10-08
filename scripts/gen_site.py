@@ -15,13 +15,13 @@ def page(title, desc, body, base='', active=''):
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{html.escape(title)}</title><meta name="description" content="{html.escape(desc)}">
-<link rel="icon" href="{base}public/logo.png"><meta name="theme-color" content="#08110e">
+<link rel="icon" href="{base}public/logo-64.png" type="image/png"><meta name="theme-color" content="#08110e">
 {EARLY}
 <link rel="stylesheet" href="{base}public/site.css"></head>
 <body>
 <a class="skip-link" href="#view">Skip to main content</a>
 <header class="site-head"><div class="wrap">
-  <a class="brand" href="{base}welcome.html"><span class="logo"><img src="{base}public/logo.png" alt=""></span><span>{CO} Finance Desk<small>by Mind Your Funds</small></span></a>
+  <a class="brand" href="{base}welcome.html"><span class="logo"><img src="{base}public/logo-128.png" alt="" width="36" height="36"></span><span>{CO} Finance Desk<small>by Mind Your Funds</small></span></a>
   <nav class="site-nav" aria-label="Primary">{nav}</nav>
   <div class="top-actions"><a class="btn pri" href="{base}index.html">Open Finance Desk</a></div>
 </div></header>
@@ -30,7 +30,7 @@ def page(title, desc, body, base='', active=''):
 </main>
 <footer class="site-foot"><div class="wrap">
   <div class="foot-grid">
-    <div><a class="brand" href="{base}welcome.html" style="padding:0"><span class="logo"><img src="{base}public/logo.png" alt=""></span><span>{CO} Finance Desk</span></a><p>Finance, GST and compliance for small businesses and internal teams, with habits that stick.</p></div>
+    <div><a class="brand" href="{base}welcome.html" style="padding:0"><span class="logo"><img src="{base}public/logo-128.png" alt="" width="36" height="36"></span><span>{CO} Finance Desk</span></a><p>Finance, GST and compliance for small businesses and internal teams, with habits that stick.</p></div>
     <div><h4>Product</h4><a href="{base}welcome.html#features">Features</a><a href="{base}welcome.html#different">What is different</a><a href="{base}welcome.html#security">Security</a><a href="{base}index.html">Open the app</a></div>
     <div><h4>Legal</h4><a href="{base}legal/terms.html">Terms of Service</a><a href="{base}legal/privacy.html">Privacy Notice</a><a href="{base}legal/disclaimer.html">Disclaimer</a><a href="{base}legal/accessibility.html">Accessibility</a></div>
     <div><h4>Resources</h4><a href="{base}welcome.html#faq">FAQ</a><a href="{base}lab.html">Practice Lab</a><a href="https://sdgs.un.org/goals" rel="noopener">UN SDGs 8 · 9 · 16</a></div>
@@ -52,7 +52,7 @@ LANDING = f"""
     <div class="cta-row"><a class="btn pri lg" href="index.html">Open Finance Desk</a><a class="btn lg" href="index.html">Try demo mode</a></div>
     <p class="fine">Demo mode needs no account and keeps data in your browser. Free during the pilot.</p>
   </div>
-  <div class="shot"><img class="only-dark" src="public/shots/dashboard-dark.jpg" width="1440" height="900" alt="Finance Desk dashboard with business card, health score and stories (dark theme)"><img class="only-light" src="public/shots/dashboard-light.jpg" width="1440" height="900" alt="Finance Desk dashboard with business card, health score and stories (light theme)"></div>
+  <div class="shot"><img class="only-dark" src="public/shots/dashboard-dark.webp" width="1200" height="750" fetchpriority="high" decoding="async" alt="Finance Desk dashboard with business card, health score and stories (dark theme)"><img class="only-light" src="public/shots/dashboard-light.webp" width="1200" height="750" fetchpriority="high" decoding="async" alt="Finance Desk dashboard with business card, health score and stories (light theme)"></div>
 </div></section>
 
 <section class="stats" aria-label="Why this matters"><div class="wrap"><div class="stat-grid">
