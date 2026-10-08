@@ -44,6 +44,17 @@ try:
         # lesson CTA remembers the lesson and opens Learn
         with pg.expect_navigation(): pg.locator('#impact a.btn').click()
         check('Learn page opens, lesson remembered', pg.url.endswith('index.html#learn') and pg.evaluate("localStorage.getItem('myf-suggest-lesson')") == 'fraud')
+        # ---- a new decision must not sit under the previous read-out
+        pg.goto('http://localhost:3136/lab.html'); pg.wait_for_selector('#begin'); pg.click('#begin'); pg.wait_for_timeout(400)
+        seen_timeout = False
+        for _ in range(40):
+            if pg.locator('.card:has-text("Suspicious bill")').count(): break
+            pg.click('#next'); pg.wait_for_timeout(30)
+            if pg.locator('#impact:not([hidden])', has_text='No decision in time').count(): seen_timeout = True
+        check('earlier timeouts were shown while nothing else was open', seen_timeout)
+        check('fraud card open: previous impact is cleared', pg.locator('.card:has-text("Suspicious bill")').count() == 1 and not pg.locator('#impact').is_visible())
+        pg.locator('.card:has-text("Suspicious bill") button.opt').first.click(); pg.wait_for_timeout(300)
+        check('then its own impact appears', 'fraudulent payment blocked' in pg.locator('#impact').inner_text() and 'No decision in time' not in pg.locator('#impact').inner_text())
         # ---- play on without answering anything: timeouts show the default consequence, then finish the quarter
         pg.goto('http://localhost:3136/lab.html'); pg.wait_for_selector('#begin'); pg.click('#begin'); pg.wait_for_timeout(400)
         saw_timeout = False

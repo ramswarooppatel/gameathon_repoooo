@@ -71,7 +71,8 @@ function decideAndEmit(id, idx, by = 'owner') {
 function step() {
   if (g.s.over) return;
   const r = nextDay(g); nextDay(gh);
-  r.decided.forEach((d) => { bus.emit('card:decided', d); if (d.by !== 'owner') showImpact(d.card, d.option, impactWithoutSnapshot(d.card, d.option, d.by)); });
+  if (r.cards.length) impactBox.hidden = true;                      // a new decision is open: clear the previous read-out so it cannot be mistaken for this one
+  r.decided.forEach((d) => { bus.emit('card:decided', d); if (d.by !== 'owner' && !g.cards.length) showImpact(d.card, d.option, impactWithoutSnapshot(d.card, d.option, d.by)); });   // timeout/auto read-out only while nothing else is open
   render();
   if (g.s.over) bus.emit('game:over', g.s);
   else if (timer && g.cards.some((c) => c.urgent)) { clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; } // pause on urgent
