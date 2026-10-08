@@ -12,8 +12,8 @@ import { countUp, muted, setMuted } from './fx.js';
 import { dueMonths } from './recurring.js';
 
 const S = { recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
-const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team };
-const TITLES = { dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings' };
+const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide };
+const TITLES = { dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
 let view = location.hash.slice(1) || 'dashboard', booted = false, session = null;
 
 // Role permissions. viewer: read · finance: write · admin: everything.
