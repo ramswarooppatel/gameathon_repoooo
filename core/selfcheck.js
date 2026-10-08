@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { split, validGstin, makeGstin, netPayable } from '../tax/gst.js';
 import { calcInvoice, inWords, nextNumber, fy, supplyFor, parseShared, exportInvoice } from '../tax/invoice.js';
 import * as EW from '../tax/eway.js';
+import { invoicePdf, wrap, textWidth } from '../app/pdf.js';
 import { createLedger } from '../ledger/blackbox.js';
 import { createGame, nextDay, decide } from './engine.js';
 
@@ -101,6 +102,10 @@ assert.equal(NIC.docDate, '09/10/2026'); assert.equal(NIC.toStateCode, 29); asse
 const FILE = exportInvoice({ id: 'abc', number: 'INV/26-27/0001', doc_type: 'tax', date: '2026-10-09', due_date: null, seller: { name: 'S', gstin: '27AAPFU0939F1ZV' }, buyer: { name: 'B' }, supply: 'intra', pos_state: '27', reverse_charge: false, items: [{ desc: 'Phone', hsn: '8517', qty: 2, rate: 1000, disc: 10, gst: 18 }], totals: { grand: 99999 }, notes: null });
 const PS = parseShared(FILE); assert.equal(PS.doc.totals.grand, 2124); assert.ok(PS.doc.mismatch > 0);   // totals are recomputed, tampering is flagged
 assert.ok(parseShared('nope').error && parseShared('{"format":"x"}').error && parseShared(FILE.replace('"gst": 18', '"gst": 7')).error);
+const PDF = new TextDecoder('latin1').decode(invoicePdf({ number: 'INV/26-27/0001', doc_type: 'tax', date: '2026-10-09', supply: 'intra', pos_state: '27', seller: { name: 'S', gstin: '27AAPFU0939F1ZV', bank: {} }, buyer: { name: 'B' }, notes: 'a\nb', totals: INV }));
+assert.ok(PDF.startsWith('%PDF-1.4') && PDF.trimEnd().endsWith('%%EOF') && PDF.includes('Rs. 2,885.00') && PDF.includes('INV/26-27/0001'));
+const XO = +PDF.match(/startxref\n(\d+)/)[1]; assert.equal(PDF.slice(XO, XO + 4), 'xref');   // the xref offset points at the table
+assert.deepEqual(wrap('a\nb c', 500, 9), ['a', 'b c']); assert.ok(textWidth('Hello', 10) > 20 && textWidth('Hello', 10) < 30);
 
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {

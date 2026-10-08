@@ -5,7 +5,8 @@ import { makeCtx, BADGES, XP, levelOf } from './gamify.js';
 import { createLedger } from '../ledger/blackbox.js';
 import { makeGstin, validGstin } from '../tax/gst.js';
 import { today, h, toast, $, inr } from './util.js';
-import { VIEWS, reminderText } from './views.js';
+import { VIEWS, reminderText, setTxQuery } from './views.js';
+import { invoicePdf } from './pdf.js';
 import * as V2 from './views2.js';
 import * as V3 from './views3.js';
 import { invoiceHtml, taxInvoiceHtml } from './invoice.js';
@@ -146,6 +147,13 @@ const A = {
     await audit('reminder.send', id, { party: r.party, via: party?.phone ? 'whatsapp' : party?.email ? 'email' : 'copy' }, `Prepared a staged payment reminder for ${r.party} (invoice ${r.number || 'n/a'}, due ${r.due_date}).`);
     await award('alert_resolved', id + ':remind', XP.alert_resolved, 'Reminder prepared'); await refresh();
   },
+  downloadInvoicePdf(id) {
+    const inv = S.invoices.find((x) => x.id === id); if (!inv) return;
+    const bytes = invoicePdf(V4.asDoc(S, inv));
+    h('a', { href: URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), download: `Invoice-${inv.number.replace(/[^\w-]/g, '-')}.pdf` }).click();
+    audit('invoice.pdf', id, { number: inv.number }, `Downloaded invoice ${inv.number} as PDF.`); toast('PDF downloaded', inv.number);
+  },
+  showEntries(number) { setTxQuery(String(number).toLowerCase()); A.go('transactions'); },
   openInvoice(id) {
     const inv = S.invoices.find((x) => x.id === id), w = window.open('', '_blank');
     if (!w) return toast('Pop-up blocked', 'Allow pop-ups to print invoices.', 'bad');
@@ -313,6 +321,7 @@ const A = {
   async remove(id) {
     if (!need('admin')) return;
     const r = find(id);
+    if (r.invoice_id && S.invoices.some((i) => i.id === r.invoice_id)) return toast('Part of an invoice', 'Cancel the invoice instead. That removes its entries and keeps the books consistent.', 'bad');
     await audit('entry.delete', id, { party: r.party, kind: r.kind }, `Deleted ${r.kind} "${r.number || ''}" with ${r.party} dated ${r.date}.`);
     await S.repo.remove('entries', id); S.entries = S.entries.filter((e) => e.id !== id); await refresh();
   },

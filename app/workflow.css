@@ -97,3 +97,21 @@ button.sm { padding: 3px 10px; font-size: 12px; }
 .fund h3 { margin: 8px 0; text-transform: none; letter-spacing: 0; font-size: 17px; color: var(--tx-title); }
 ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
 .lesson .ico { color: var(--acc2); }
+
+/* ---------------------------------------------------------------- add-transaction dialog */
+[hidden] { display: none !important; }
+.entry-dialog-modal { max-width: 860px; width: min(860px, 96vw); max-height: 94vh; overflow: auto; }
+.entry-dialog-modal .form-grid-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-content: start; } .entry-dialog-modal .form-grid-fields > * { min-width: 0; }
+.entry-dialog-modal .full { grid-column: 1 / -1; } .entry-dialog-modal label { display: grid; gap: 6px; font-size: 13px; color: var(--mu); } .entry-dialog-modal input:not([type=checkbox]), .entry-dialog-modal select { width: 100%; min-width: 0; }
+.entry-dialog-modal .lbl { display: block; font-size: 13px; color: var(--mu); margin-bottom: 6px; } .entry-dialog-modal label.chk { display: flex; align-items: center; gap: 8px; color: var(--tx); font-size: 14px; }
+.entry-dialog-modal .amt input { font-size: 26px; font-weight: 700; padding: 12px 14px; }
+.type-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; } @media (max-width: 640px) { .type-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dialog-content-split { grid-template-columns: minmax(0, 1fr); } }
+.type-btn { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; min-height: 56px; } .type-btn small { color: var(--mu); font-size: 11.5px; font-weight: 400; } .type-btn.on { border-color: var(--acc); background: var(--acc-glow); } .type-btn.on b { color: var(--acc2); }
+.callout { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--info-bg); font-size: 13px; }
+.chips-seg { flex-wrap: wrap; } .seg button.on { background: var(--card); box-shadow: 0 1px 3px #0002; color: var(--tx-title); font-weight: 600; }
+.quick-due { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sticky-col { position: sticky; top: 0; } .effect { margin: 12px 0 0; }
+button.linklike { background: none; border: 0; padding: 0; color: var(--acc2); font: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
+html[data-theme] .type-btn, html[data-theme] .entry-dialog-modal .seg button { border-radius: 12px; } html[data-theme] .entry-dialog-modal .seg { border-radius: 14px; } .entry-dialog-modal .chips-seg button { padding: 8px 14px; }
+.entry-dialog-modal .dialog-footer { position: sticky; bottom: -24px; background: var(--card); margin: var(--sp-4) -24px -24px; padding: 14px 24px; z-index: 2; }
+.type-btn { align-content: start; justify-items: start; } .entry-dialog-modal .seg button { white-space: nowrap; }

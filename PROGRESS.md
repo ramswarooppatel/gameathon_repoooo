@@ -72,6 +72,9 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Print / PDF layout (A4), seller bank and UPI, notes and terms | ✅ |
 | E-way bill: requirement check, validity, validation, NIC bulk-upload JSON, save the bill number | ✅ (the bill itself is generated on the NIC portal) |
 | Received invoices: import a file, or inbox of invoices sent to your GSTIN; accept creates purchase entries with ITC, reject notifies the sender | ✅ demo; cloud path ⬜ untested until migration 8 is applied |
+| PDF download of any issued invoice (own dependency-free writer, `app/pdf.js`; amounts print as Rs.), from the invoice list, share dialog and transactions | ✅ (`core/selfcheck.js`, `scripts/txn_test.py`) |
+| Add-transaction dialog: type picker, GST-included or before-GST amount, live summary and cash effect, quick due dates, already-paid, save and add another; sales point to Invoices | ✅ |
+| Invoices and transactions linked: invoice rows open from Transactions, delete is blocked (cancel the invoice instead), Entries button on each invoice | ✅ |
 | Item catalog, full JSON backup, shortcuts (`?`, `i`, `n`, `/`, `g` + letter, Ctrl+S, Ctrl+Enter) | ✅ |
 | Limits | GSTIN ownership is not verified, so a buyer inbox trusts the GSTIN a workspace claims. No credit notes, e-invoice (IRN) or TCS/TDS yet. |
 

@@ -1,14 +1,14 @@
 import { h, inr, today, toast } from './util.js';
 import { QUESTS, BADGES, LEVELS } from './gamify.js';
-import { toCsv, gstFor, enrich, prevMonth, daysBetween, guessSupply } from '../workspace/calc.js';
-import { validGstin } from '../tax/gst.js';
+import { toCsv, gstFor, enrich, prevMonth, daysBetween, guessSupply, addDays } from '../workspace/calc.js';
+import { validGstin, split } from '../tax/gst.js';
 import { GST_LATE_INTEREST_PA } from '../tax/config.js';
 import { ask } from '../ai/groq.js';
 import { scratch, confetti } from './fx.js';
 import { parseBank, matchBank } from './bank.js';
 import { appearanceCard } from './extras.js';
 import { icon } from './icons.js';
-import { invoiceSettingsCard } from './views4.js';
+import { invoiceSettingsCard, startInvoice } from './views4.js';
 
 const KIND = { sale: 'Sale', purchase: 'Purchase', expense: 'Expense', salary: 'Salary' };
 const card = (title, ...kids) => h('section', { class: 'card' }, h('h3', {}, title), ...kids);
@@ -257,197 +257,90 @@ function dashboard(S, A) {
 
 // ---------------------------------------------------------------- Transactions
 function entryDialog(S, A) {
-  const f = h('form', { class: 'form', method: 'dialog' });
-  const sel = (id, opts, v) => h('select', { id }, ...opts.map(([val, t]) => h('option', { value: val, selected: val === v }, t)));
-  const inp = (id, type = 'text', extra = {}) => h('input', { id, type, ...extra });
-  const L = (t, el, cls = '', errId = '') => h('label', { class: cls }, t, el, errId ? h('small', { id: errId, class: 'field-err' }) : null);
+  const old = document.querySelector('dialog.entry-dialog-modal');            // one dialog for the whole session, so "save and add another" survives re-renders
+  if (old) { old.refresh(); return old; }
+  const TYPES = [['sale', 'Sale', 'Money you will receive'], ['purchase', 'Purchase', 'Goods or services you buy'], ['expense', 'Expense', 'Rent, travel, software'], ['salary', 'Payroll', 'Salary, no GST']];
+  const CATS = ['Rent', 'Salaries', 'Software', 'Travel', 'Supplies', 'Utilities', 'Marketing', 'Professional fees', 'Insurance', 'Repairs'];
+  const WHO = { sale: ['Customer', 'Who are you billing?'], purchase: ['Vendor', 'Who did you buy from?'], expense: ['Paid to', 'Shop, landlord, service…'], salary: ['Employee', 'Name of the employee'] };
+  const REF = { sale: 'Invoice number', purchase: 'Bill number', expense: 'Bill or receipt no.', salary: 'Reference' };
+  const st = { kind: 'sale', incl: false, rate: 18 };
+  const inp = (type, extra = {}) => h('input', { type, ...extra });
+  const L = (label, el, cls = '') => h('label', { class: cls }, label, el);
+  const err = (msg) => h('small', { class: 'field-err' }, msg);
 
-  const kind = sel('e-kind', Object.entries(KIND), 'sale');
-  const gstin = inp('e-gstin', 'text', { maxLength: 15, placeholder: '22AAAAA0000A1Z5' });
-  const supply = sel('e-supply', [['intra', 'Same state (CGST + SGST)'], ['inter', 'Other state (IGST)']], 'intra');
-  const gstinStatus = h('div', { class: 'gstin-status-msg mu small' });
+  const party = inp('text', { required: true, autocomplete: 'off', list: 'party-list' }), gstin = inp('text', { maxLength: 15, placeholder: '15-character GSTIN (optional)', autocomplete: 'off' });
+  const num = inp('text', { maxLength: 40 }), cat = inp('text', { list: 'cat-list', placeholder: 'Used for budgets and reports' }), amount = inp('number', { min: 0, step: '0.01', placeholder: '0.00', required: true, inputMode: 'decimal' });
+  const date = inp('date', { value: today(), required: true }), due = inp('date'), paidOn = inp('checkbox'), paidDate = inp('date');
+  const supply = h('select', { 'aria-label': 'Tax applied' }, h('option', { value: 'intra' }, 'Same state: CGST + SGST'), h('option', { value: 'inter' }, 'Other state: IGST'));
+  const gstMsg = h('small', { class: 'mu block' }), dueMsg = err(''), amtMsg = err('');
+  const dl = h('datalist', { id: 'party-list' }, ...S.parties.map((p) => h('option', { value: p.name }))), cl = h('datalist', { id: 'cat-list' }, ...CATS.map((c) => h('option', { value: c })));
 
-  const validateGstinField = () => {
-    gstin.value = gstin.value.toUpperCase().trim();
-    if (!gstin.value) {
-      gstinStatus.textContent = '';
-      gstinStatus.className = 'gstin-status-msg mu small';
-      gstin.classList.remove('err', 'valid');
-      return;
-    }
-    const ok = validGstin(gstin.value);
-    if (ok) {
-      gstinStatus.replaceChildren(icon('check', { size: 14 }), ' Valid GSTIN (checksum verified)');
-      gstinStatus.className = 'gstin-status-msg good small';
-      gstin.classList.remove('err');
-      gstin.classList.add('valid');
-      if (validGstin(S.profile.gstin || '')) supply.value = guessSupply(S.profile.gstin, gstin.value);
-    } else {
-      gstinStatus.replaceChildren(icon('x', { size: 14 }), ' Invalid GSTIN format or checksum. Input credit may be flagged.');
-      gstinStatus.className = 'gstin-status-msg bad small';
-      gstin.classList.remove('valid');
-      gstin.classList.add('err');
-    }
-  };
+  const pick = (items, cur, set, cls = 'seg') => { const btns = items.map(([v, l]) => h('button', { type: 'button', role: 'radio', onclick: () => { set(v); update(); } }, l)); const w = h('div', { class: cls, role: 'radiogroup' }, ...btns); w.redraw = () => btns.forEach((b, i) => { const on = cur() === items[i][0]; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }); w.redraw(); return w; };      // buttons are never re-created, so a click that blurs another field still lands
+  const typeBar = h('div', { class: 'type-bar', role: 'radiogroup', 'aria-label': 'Transaction type' });
+  const drawTypes = () => typeBar.replaceChildren(...TYPES.map(([v, l, d]) => h('button', { type: 'button', role: 'radio', 'aria-checked': String(st.kind === v), class: 'type-btn' + (st.kind === v ? ' on' : ''), onclick: () => { st.kind = v; if (v === 'salary') st.rate = 0; else if (!st.rate) st.rate = 18; drawTypes(); update(); } }, h('b', {}, l), h('small', {}, d))));
+  const rateBar = pick([0, 5, 12, 18, 28, 40].map((r) => [r, r + '%']), () => st.rate, (v) => { st.rate = v; }, 'seg chips-seg');
+  const modeBar = pick([[false, 'Before GST'], [true, 'GST included']], () => st.incl, (v) => { st.incl = v; });
+  const inv = h('div', { class: 'callout' }, h('span', {}, h('b', {}, 'Selling with GST? '), 'An invoice records this sale for you, numbers it and gives your customer a PDF.'), h('button', { type: 'button', class: 'pri sm', onclick: () => { startInvoice(S, party.value.trim()); dlg.close(); A.go('invoices'); } }, 'Create invoice'));
 
-  gstin.oninput = validateGstinField;
+  const rows = { taxable: h('b', {}), cgst: h('b', {}), sgst: h('b', {}), igst: h('b', {}), total: h('b', { class: 'tax-grand-total' }) };
+  const r = (k, label) => h('div', { class: 'tax-preview-row', 'data-k': k }, h('span', {}, label), rows[k]);
+  const effect = h('p', { class: 'mu small effect' });
+  const sumCard = h('div', { class: 'tax-preview-card' }, h('h4', { class: 'tax-preview-title' }, icon('bolt', { size: 16 }), ' Summary'), r('taxable', 'Amount before GST'), r('cgst', 'CGST'), r('sgst', 'SGST'), r('igst', 'IGST'), h('div', { class: 'tax-preview-divider' }), h('div', { class: 'tax-preview-row total' }, h('span', {}, 'Total'), rows.total), effect);
 
-  const rate = sel('e-rate', [0, 5, 12, 18, 28, 40].map((r) => [r, r + '%']), 18);
-  const [date, due, paid] = [inp('e-date', 'date', { value: today(), required: true }), inp('e-due', 'date'), inp('e-paid', 'date')];
-  const [num, party, taxable, cat] = [
-    inp('e-num', 'text', { placeholder: 'e.g. INV-2026-001' }),
-    inp('e-party', 'text', { required: true, placeholder: 'Client or vendor name' }),
-    inp('e-taxable', 'number', { min: 0, step: '0.01', required: true, placeholder: '0.00' }),
-    inp('e-cat', 'text', { placeholder: 'Rent, Software, Travel, Supplies…' })
-  ];
+  const taxable = () => { const a = +amount.value || 0; return Math.round((st.incl && st.rate ? a / (1 + st.rate / 100) : a) * 100) / 100; };
+  const field = (el, show) => { el.hidden = !show; };
+  const boxes = { ref: L(REF.sale, num), gstin: h('label', {}, 'GSTIN', gstin, gstMsg), cat: L('Category', cat, 'full'), due: h('label', {}, 'Due date', due, dueMsg), rate: h('div', { class: 'full' }, h('span', { class: 'lbl' }, 'GST rate'), rateBar), mode: h('div', {}, h('span', { class: 'lbl' }, 'The amount is'), modeBar), tax: L('Tax applied', supply), paidDate: L('Paid on', paidDate), quick: h('div', { class: 'full quick-due' }, h('small', { class: 'mu' }, 'Due in:'), ...[0, 7, 15, 30].map((n) => h('button', { type: 'button', class: 'sm', onclick: () => { due.value = addDays(date.value || today(), n); update(); } }, n ? n + ' days' : 'On receipt'))) };
+  const partyLbl = h('span', { class: 'lbl' });
 
-  // Date coherence validation
-  const dateErr = h('small', { class: 'field-err' });
-  const checkDates = () => {
-    if (due.value && date.value && due.value < date.value) {
-      dateErr.textContent = 'Due date cannot precede invoice date';
-      due.classList.add('err');
-    } else {
-      dateErr.textContent = '';
-      due.classList.remove('err');
-    }
-  };
-  date.onchange = checkDates;
-  due.onchange = checkDates;
+  function update() {
+    const k = st.kind, gst = k !== 'salary', money = k === 'sale' || k === 'purchase';
+    typeBar.querySelectorAll('.type-btn').forEach((b, i) => { b.classList.toggle('on', TYPES[i][0] === k); b.setAttribute('aria-checked', String(TYPES[i][0] === k)); });
+    partyLbl.textContent = WHO[k][0] + ' *'; party.placeholder = WHO[k][1]; boxes.ref.firstChild.textContent = REF[k];
+    field(inv, k === 'sale'); field(boxes.gstin, gst); field(boxes.cat, k !== 'sale'); field(boxes.rate, gst); field(boxes.mode, gst); field(boxes.tax, gst && st.rate > 0); field(boxes.due, money); field(boxes.quick, money); field(boxes.paidDate, paidOn.checked);
+    rateBar.redraw(); modeBar.redraw();
+    if (validGstin(gstin.value) && validGstin(S.profile.gstin || '')) supply.value = guessSupply(S.profile.gstin, gstin.value);
+    gstMsg.textContent = ''; gstin.classList.remove('err', 'valid');
+    if (gstin.value) { const ok = validGstin(gstin.value); gstin.classList.add(ok ? 'valid' : 'err'); gstMsg.textContent = ok ? 'GSTIN checksum is valid.' : 'GSTIN looks wrong. Input credit may be refused.'; gstMsg.className = 'block small ' + (ok ? 'good' : 'bad'); }
+    dueMsg.textContent = due.value && date.value && due.value < date.value ? 'Due date is before the date' : '';
+    const t = taxable(), x = split(t, gst ? st.rate : 0, supply.value), inter = supply.value === 'inter';
+    rows.taxable.textContent = inr(t); rows.cgst.textContent = inr(x.cgst); rows.sgst.textContent = inr(x.sgst); rows.igst.textContent = inr(x.igst); rows.total.textContent = inr(t + x.total);
+    sumCard.querySelector('[data-k=cgst]').hidden = inter || !x.total; sumCard.querySelector('[data-k=sgst]').hidden = inter || !x.total; sumCard.querySelector('[data-k=igst]').hidden = !inter || !x.total;
+    const tot = inr(t + x.total), settled = paidOn.checked;
+    effect.textContent = !t ? 'Enter an amount to see what this does to your cash.' : settled ? `Recorded as paid. Cash ${k === 'sale' ? 'rises' : 'falls'} by ${tot}.` : k === 'sale' ? `You will receive ${tot}${due.value ? ' by ' + due.value : ''}.` : k === 'purchase' ? `You will pay ${tot}${due.value ? ' by ' + due.value : ''}.` : `${tot} counts as a cost this month.`;
+    if (+amount.value < 0) amtMsg.textContent = 'Amount cannot be negative'; else amtMsg.textContent = '';
+  }
+  [amount, date, due, gstin, supply, paidOn].forEach((el) => { el.oninput = update; el.onchange = update; });
+  gstin.oninput = () => { gstin.value = gstin.value.toUpperCase().trim(); update(); };
+  paidOn.onchange = () => { if (paidOn.checked && !paidDate.value) paidDate.value = date.value; update(); };
+  party.onchange = () => { const p = S.parties.find((x) => x.name === party.value); if (p?.gstin && !gstin.value) gstin.value = p.gstin; update(); };
 
-  kind.onchange = () => {
-    if (kind.value === 'salary') rate.value = 0;
-    updateTaxPreview();
-  };
-
-  party.setAttribute('list', 'party-list');
-  const dl = h('datalist', { id: 'party-list' }, ...S.parties.map((p) => h('option', { value: p.name })));
-  party.onchange = () => {
-    const p = S.parties.find((x) => x.name === party.value);
-    if (p?.gstin && !gstin.value) {
-      gstin.value = p.gstin;
-      validateGstinField();
-    }
-  };
-
-  // Sticky Live Tax Preview Card
-  const prevTaxable = h('b', {}, '₹0');
-  const prevCgst = h('span', {}, '₹0');
-  const prevSgst = h('span', {}, '₹0');
-  const prevIgst = h('span', {}, '₹0');
-  const prevTotal = h('b', { class: 'tax-grand-total' }, '₹0');
-  const cgstRow = h('div', { class: 'tax-preview-row' }, h('span', {}, 'CGST:'), prevCgst);
-  const sgstRow = h('div', { class: 'tax-preview-row' }, h('span', {}, 'SGST:'), prevSgst);
-  const igstRow = h('div', { class: 'tax-preview-row', style: 'display:none' }, h('span', {}, 'IGST:'), prevIgst);
-
-  const updateTaxPreview = () => {
-    const val = +taxable.value || 0;
-    const r = +rate.value || 0;
-    const isInter = supply.value === 'inter';
-    const t = (val * r) / 100;
-    prevTaxable.textContent = inr(val);
-    if (isInter) {
-      cgstRow.style.display = 'none';
-      sgstRow.style.display = 'none';
-      igstRow.style.display = 'flex';
-      prevIgst.textContent = inr(t);
-    } else {
-      cgstRow.style.display = 'flex';
-      sgstRow.style.display = 'flex';
-      igstRow.style.display = 'none';
-      prevCgst.textContent = inr(t / 2);
-      prevSgst.textContent = inr(t / 2);
-    }
-    prevTotal.textContent = inr(val + t);
-  };
-
-  taxable.oninput = updateTaxPreview;
-  rate.onchange = updateTaxPreview;
-  supply.onchange = updateTaxPreview;
-
-  const taxPreviewBox = h('div', { class: 'tax-preview-card' },
-    h('h4', { class: 'tax-preview-title' }, icon('bolt', { size: 16 }), ' Live tax summary'),
-    h('div', { class: 'tax-preview-row' }, h('span', {}, 'Taxable Amount:'), prevTaxable),
-    cgstRow,
-    sgstRow,
-    igstRow,
-    h('div', { class: 'tax-preview-divider' }),
-    h('div', { class: 'tax-preview-row total' }, h('span', {}, 'Grand Total:'), prevTotal)
-  );
-
-  const formFields = h('div', { class: 'form-grid-fields' },
-    L('Type', kind), L('Invoice / Ref No.', num),
-    L('Party / Payee *', party, 'full'),
-    L('Party GSTIN', gstin, 'full'),
-    gstinStatus,
-    L('Category (for expenses)', cat, 'full'),
-    L('Date *', date),
-    h('label', {}, 'Due Date', due, dateErr),
-    L('Taxable Value ₹ *', taxable),
-    L('GST Rate', rate),
-    L('Supply Type', supply),
-    L('Paid on Date', paid)
-  );
-
-  const dlg = h('dialog', { class: 'dlg wide entry-dialog-modal' },
-    h('div', { class: 'dialog-head' },
-      h('h3', {}, 'Add New Transaction'),
-      h('button', { type: 'button', class: 'dialog-close-btn', onclick: () => dlg.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('x', { size: 16 }))
-    ),
-    f,
-    dl
-  );
-
-  f.append(
-    h('div', { class: 'dialog-content-split' },
-      formFields,
-      taxPreviewBox
-    ),
-    h('div', { class: 'full row dialog-footer' },
-      h('button', { type: 'button', onclick: () => dlg.close() }, 'Cancel (Esc)'),
-      h('button', { class: 'pri', type: 'submit' }, 'Save Transaction (Enter)')
-    )
-  );
-
-  // Keyboard navigation & ergonomics
-  dlg.onkeydown = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      dlg.close();
-    }
-  };
-
-  f.onsubmit = async (ev) => {
+  const reset = () => { party.value = gstin.value = num.value = cat.value = amount.value = due.value = paidDate.value = ''; paidOn.checked = false; date.value = today(); update(); };
+  let again = false;
+  const form = h('form', { class: 'entry-form', method: 'dialog', onsubmit: async (ev) => {
     ev.preventDefault();
-    if (!party.value.trim() || !+taxable.value) {
-      return toast('Missing required fields', 'Please provide a party name and taxable value.', 'bad');
-    }
-    if (due.value && date.value && due.value < date.value) {
-      return toast('Invalid dates', 'Due date cannot precede invoice date.', 'bad');
-    }
+    if (!party.value.trim()) return toast('Name needed', `Add the ${WHO[st.kind][0].toLowerCase()} name.`, 'bad');
+    if (!(taxable() > 0)) return toast('Amount needed', 'Enter an amount above zero.', 'bad');
+    if (due.value && date.value && due.value < date.value) return toast('Check the dates', 'Due date is before the date.', 'bad');
+    const k = st.kind;
     try {
-      await A.addEntry({
-        kind: kind.value,
-        number: num.value.trim() || null,
-        party: party.value.trim(),
-        gstin: gstin.value.trim() || null,
-        category: cat.value.trim() || null,
-        date: date.value,
-        due_date: due.value || null,
-        taxable: +taxable.value,
-        gst_rate: +rate.value,
-        supply: supply.value,
-        paid_date: paid.value || null
-      });
-      dlg.close();
-      f.reset();
-      date.value = today();
-      updateTaxPreview();
-    } catch (x) {
-      toast('Could not save', x.message, 'bad');
-    }
-  };
-
+      await A.addEntry({ kind: k, number: num.value.trim() || null, party: party.value.trim(), gstin: k === 'salary' ? null : gstin.value.trim() || null, category: cat.value.trim() || (k === 'salary' ? 'Salaries' : null), date: date.value, due_date: (k === 'sale' || k === 'purchase') && due.value ? due.value : null, taxable: taxable(), gst_rate: k === 'salary' ? 0 : st.rate, supply: supply.value, paid_date: paidOn.checked ? paidDate.value || date.value : null });
+      if (again) { again = false; const keep = date.value; reset(); date.value = keep; update(); party.focus(); } else dlg.close();
+    } catch (x) { toast('Could not save', x.message, 'bad'); }
+  } },
+    h('div', { class: 'dialog-content-split' },
+      h('div', { class: 'form-grid-fields' }, h('div', { class: 'full' }, h('span', { class: 'lbl' }, 'Type'), typeBar), inv,
+        h('label', { class: 'full' }, partyLbl, party), boxes.gstin, boxes.ref, boxes.cat,
+        h('label', { class: 'full amt' }, h('span', { class: 'lbl' }, 'Amount ₹ *'), amount, amtMsg), boxes.mode, boxes.rate, boxes.tax,
+        L('Date *', date), boxes.due, boxes.quick,
+        h('label', { class: 'full chk' }, paidOn, ' Already paid'), boxes.paidDate),
+      h('div', { class: 'sticky-col' }, sumCard)),
+    h('div', { class: 'full row dialog-footer' }, h('span', { class: 'mu small grow' }, 'Esc to close · Enter to save'), h('button', { type: 'button', onclick: () => dlg.close() }, 'Cancel'),
+      h('button', { type: 'button', onclick: () => { again = true; form.requestSubmit(); } }, 'Save and add another'), h('button', { class: 'pri', type: 'submit', onclick: () => { again = false; } }, 'Save')));
+  const dlg = h('dialog', { class: 'dlg wide entry-dialog-modal', 'aria-label': 'Add transaction' },
+    h('div', { class: 'dialog-head' }, h('h3', {}, 'Add transaction'), h('button', { type: 'button', class: 'dialog-close-btn', onclick: () => dlg.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('x', { size: 16 }))), form, dl, cl);
+  dlg.addEventListener('close', () => { document.activeElement?.blur?.(); reset(); st.kind = 'sale'; st.rate = 18; st.incl = false; drawTypes(); update(); });
+  dlg.refresh = () => dl.replaceChildren(...S.parties.map((p) => h('option', { value: p.name })));
+  document.body.append(dlg); drawTypes(); update();
   return dlg;
 }
 
@@ -472,6 +365,7 @@ function importDialog(S, A) {
   return dlg;
 }
 
+export const setTxQuery = (q) => { txQuery = q; txFilter = 'all'; };
 let txFilter = 'all', txQuery = '', txSortCol = 'date', txSortAsc = false;
 let txVisibleCols = { ref: true, due: true, taxable: true, tax: true };
 
@@ -609,7 +503,7 @@ function transactions(S, A) {
 
     for (const r of rows) {
       const over = !r.paid_date && r.due_date && r.due_date < today();
-      const isSelected = selectedIds.has(r.id);
+      const isSelected = selectedIds.has(r.id), own = r.invoice_id && S.invoices.find((i) => i.id === r.invoice_id);
 
       const rowCb = h('input', {
         type: 'checkbox',
@@ -638,7 +532,8 @@ function transactions(S, A) {
           title: 'View & Print Tax Invoice',
           onclick: () => A.printInvoice(r.id)
         }, 'Invoice'),
-        S.can('admin') && h('button', {
+        own && h('button', { class: 'sm', title: 'Download the invoice as PDF', onclick: () => A.downloadInvoicePdf(own.id) }, 'PDF'),
+        S.can('admin') && !own && h('button', {
           class: 'sm del-btn',
           title: 'Delete Entry',
           onclick: () => confirm('Delete this transaction? This action is permanently recorded in the audit trail.') && A.remove(r.id)
@@ -650,7 +545,7 @@ function transactions(S, A) {
         h('td', { class: 'tx-kind-cell' },
           h('span', { class: `kind-pill ${r.kind}` }, KIND[r.kind] || r.kind)
         ),
-        txVisibleCols.ref ? h('td', { class: 'mono small' }, r.number || '—') : null,
+        txVisibleCols.ref ? h('td', { class: 'mono small' }, own ? h('button', { class: 'linklike', title: 'Open invoice', onclick: () => A.openInvoice(own.id) }, icon('invoices', { size: 13 }), r.number) : r.number || '—', !own && r.invoice_id ? h('small', { class: 'chip info' }, 'Received') : null) : null,
         h('td', { class: 'party-cell' },
           h('b', {}, r.party),
           r.category ? h('small', { class: 'mu block' }, r.category) : null
@@ -733,7 +628,6 @@ function transactions(S, A) {
         )
       )
     ),
-    dlg,
     imp
   );
 }

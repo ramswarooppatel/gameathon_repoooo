@@ -49,6 +49,7 @@ function newDraft(S) {
 }
 const fromRow = (r) => ({ id: r.id, doc_type: r.doc_type, number: r.number, date: r.date, due_date: r.due_date || '', buyer: { ...blankBuyer(), ...r.buyer }, pos_state: r.pos_state || '', reverse_charge: r.reverse_charge, items: r.items.map((x) => ({ ...x })), notes: r.notes || '' });
 
+export function startInvoice(S, buyerName = '') { F = newDraft(S); F.buyer.name = buyerName; const c = S.parties.find((p) => p.kind === 'customer' && p.name === buyerName); if (c) Object.assign(F.buyer, { gstin: c.gstin || '', address: c.address || '', pincode: c.pincode || '', email: c.email || '', phone: c.phone || '' }); tab = 'issued'; }
 function build(S) {
   const seller = sellerOf(S), bos = F.doc_type === 'bos', supply = supplyFor(seller.gstin, F.pos_state);
   const items = F.items.filter((i) => String(i.desc).trim() || +i.rate).map((i) => ({ desc: String(i.desc).trim(), hsn: String(i.hsn).trim(), qty: +i.qty || 0, unit: i.unit, rate: +i.rate || 0, disc: +i.disc || 0, gst: bos ? 0 : +i.gst }));
@@ -138,6 +139,7 @@ function shareDialog(S, A, inv) {
       h('button', { onclick: async () => { try { await navigator.clipboard.writeText(msg); toast('Copied', 'Paste it anywhere.'); } catch { toast('Copy failed', 'Select the text and copy it.', 'bad'); } } }, 'Copy message'),
       wa && h('a', { class: 'btn', href: `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, target: '_blank', rel: 'noopener' }, 'WhatsApp'),
       b.email && h('a', { class: 'btn', href: `mailto:${b.email}?subject=${encodeURIComponent('Invoice ' + inv.number)}&body=${encodeURIComponent(msg)}` }, 'Email'),
+      h('button', { class: 'pri', onclick: () => A.downloadInvoicePdf(inv.id) }, 'Download PDF'),
       h('button', { onclick: () => { saveFile(`invoice-${inv.number.replace(/\W/g, '-')}.json`, exportInvoice(inv)); } }, 'Download invoice file'),
       h('button', { disabled: !canSend || inv.shared, onclick: async () => { await A.shareInvoice(inv.id); close(); } }, inv.shared ? `Sent to buyer (${inv.buyer_status || 'pending'})` : 'Send to buyer in the app')),
     h('p', { class: 'mu small' }, canSend ? `Delivers into the inbox of the workspace registered under GSTIN ${inv.buyer_gstin}, if there is one. They can accept or reject it.` : cloud ? 'To send into a buyer’s inbox, the invoice needs a valid buyer GSTIN.' : 'Demo mode has no other organisations. Send the invoice file; the buyer imports it under Invoices > Received.'),
@@ -185,7 +187,7 @@ function issued(S, A) {
       td(h('span', { class: 'chip ' + kind }, label), false),
       h('td', { class: 'acts' },
         i.status === 'draft' ? [w && h('button', { onclick: () => { F = fromRow(i); A.render(); } }, 'Edit'), w && h('button', { onclick: () => confirm('Delete this draft?') && A.deleteDraft(i.id) }, 'Delete')]
-          : [h('button', { onclick: () => A.openInvoice(i.id) }, 'View'), live && h('button', { onclick: () => shareDialog(S, A, i) }, 'Share'), live && i.doc_type === 'tax' && h('button', { onclick: () => ewayDialog(S, A, i) }, 'E-way'),
+          : [h('button', { onclick: () => A.openInvoice(i.id) }, 'View'), h('button', { onclick: () => A.downloadInvoicePdf(i.id) }, 'PDF'), h('button', { onclick: () => A.showEntries(i.number) }, 'Entries'), live && h('button', { onclick: () => shareDialog(S, A, i) }, 'Share'), live && i.doc_type === 'tax' && h('button', { onclick: () => ewayDialog(S, A, i) }, 'E-way'),
             live && w && label !== 'Paid' && h('button', { onclick: () => A.markInvoicePaid(i.id) }, 'Paid'), live && S.can('admin') && h('button', { onclick: () => confirm(`Cancel ${i.number}? Its sale entries are removed from your books.`) && A.cancelInvoice(i.id) }, 'Cancel')]));
   })));
 }
