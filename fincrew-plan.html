@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FinCrew: Cashflow Quest — Plan</title>
+<style>
+:root{--bg:#0e1020;--card:#171a30;--line:#2a2f55;--tx:#e8eaff;--mu:#9aa0c8;--ram:#4cc9f0;--sum:#f9c74f;--mas:#f72585;--ok:#43d9a3;--bad:#ff5d5d}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--tx)}
+nav{position:sticky;top:0;background:#0e1020ee;backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:16px;flex-wrap:wrap;z-index:9}
+nav a{color:var(--mu);text-decoration:none;font-weight:600;font-size:13px}nav a:hover{color:#fff}
+main{max-width:1100px;margin:auto;padding:20px}
+h1{font-size:40px;margin:30px 0 4px}h2{font-size:26px;margin:50px 0 12px;border-left:5px solid var(--mas);padding-left:12px}h3{margin:20px 0 6px}
+.sub{color:var(--mu)}.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card h4{margin:0 0 6px}.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;background:#2a2f55;margin:2px 2px 0 0}
+.ram{color:var(--ram)}.sum{color:var(--sum)}.mas{color:var(--mas)}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}th{background:#1f2347}
+tr.meal td{background:#1d3a2f}tr.sleep td{background:#2b2440}tr.buf td{background:#3a321d}tr.gate td{background:#3a1d28;font-weight:600}
+code,pre{background:#0a0c18;border:1px solid var(--line);border-radius:6px;font-size:13px}code{padding:1px 5px}pre{padding:12px;overflow:auto}
+.arch{display:grid;gap:10px;grid-template-columns:1fr 1fr 1fr}.box{border:2px solid;border-radius:10px;padding:10px;background:#12152a}
+.box.r{border-color:var(--ram)}.box.s{border-color:var(--sum)}.box.m{border-color:var(--mas)}.box small{color:var(--mu);display:block}
+.wide{grid-column:1/-1;text-align:center;border:2px dashed var(--line);border-radius:10px;padding:8px;color:var(--mu)}
+.hero{background:linear-gradient(135deg,#25194d,#10223f);border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:10px}
+.pill{font-size:12px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);margin-right:6px}
+.q{border-left:3px solid var(--ok);padding:4px 12px;margin:10px 0;background:#13172b}.q b{color:var(--ok)}
+@media(max-width:800px){.arch{grid-template-columns:1fr}}
+</style></head><body>
+<nav><a href="#idea">Idea</a><a href="#loop">Game Loop</a><a href="#novel">Novelty</a><a href="#arch">Architecture</a><a href="#score">Health &amp; Scoring</a><a href="#plan">24h Plan</a><a href="#work">Work Allocation</a><a href="#contract">Anti-Collision</a><a href="#demo">Demo Script</a><a href="#qa">Judge Q&amp;A</a><a href="#cut">Cut List</a></nav>
+<main>
+
+<h1>🛡️ FinCrew: Cashflow Quest</h1>
+<div class="sub">Game-a-thon 2026 · Track 3 FinTech · PS 3.1 · Team: Ram, Sumit, Masoom · SDG 8 · 9 · 16</div>
+
+<section id="idea"><h2>1. The Idea (one paragraph)</h2>
+<div class="hero">
+<p><b>FinCrew is a co-op strategy game where you are the Captain of a small shop, and your AI finance crew defends it for 90 simulated days.</b> Four crew members (agents) watch invoices, payroll, taxes and bank activity. Surprises hit as <i>waves</i>: a client pays late, a big expense lands, a fraud attempt arrives, a growth opportunity appears. Crew members propose moves as <b>Action Cards</b>. You approve, reject or let them auto-play under a limit you set with the <b>Trust Dial</b>. Every move prints a <b>Why-Receipt</b> into a tamper-evident <b>Black Box log</b>.</p>
+<p><b>Hook:</b> a <b>Ghost Twin</b> runs the same 90 days with <i>no crew</i>, side by side. The gap between your business and the ghost is the proof the solution works, shown live on one screen.</p>
+<span class="pill">Gamified</span><span class="pill">Explainable</span><span class="pill">Owner-in-control</span><span class="pill">Measurable</span>
+</div>
+
+<h3>The crew (the 4 agents = 4 playable "classes")</h3>
+<div class="grid">
+<div class="card"><h4>📬 Collector</h4>Watches invoices. Predicts which client will pay late (from past delay pattern), drafts reminders, offers early-pay discount. <span class="tag">late payments</span></div>
+<div class="card"><h4>🧮 Treasurer</h4>Forecasts cash runway 30/60/90 days. Schedules payroll, tax and bill deadlines, warns before a gap, suggests which bill to delay. <span class="tag">deadlines</span><span class="tag">cash flow</span></div>
+<div class="card"><h4>🕵️ Sentinel</h4>Flags suspicious transactions (duplicate invoice, changed bank account, odd amount, odd hour). Triggers the Fraud Boss minigame. <span class="tag">fraud</span></div>
+<div class="card"><h4>🚀 Scout</h4>Spots growth chances (bulk order, supplier discount, hire). Runs "can we afford it?" simulation before recommending. <span class="tag">growth</span></div>
+</div>
+<p class="sub">Owner's key question answered: <b>"What do I need to know, and when?"</b> → one daily <i>Morning Briefing</i> (max 3 items, ranked by ₹ impact and deadline) plus red alerts only when something is urgent.</p>
+</section>
+
+<section id="loop"><h2>2. Game Loop</h2>
+<table><tr><th>Step</th><th>What happens</th><th>Player feels</th></tr>
+<tr><td>1 Morning Briefing</td><td>Day starts. Top 3 things that matter. Cash, runway, trust score shown.</td><td>Clarity</td></tr>
+<tr><td>2 Surprise Wave</td><td>Scripted + seeded-random event hits (late client, big bill, fraud, opportunity).</td><td>Tension</td></tr>
+<tr><td>3 Crew Reacts</td><td>Relevant agent animates, posts an Action Card with cost, benefit, risk, confidence.</td><td>Smart help</td></tr>
+<tr><td>4 Captain Decides</td><td>Approve / Reject / Edit, or auto if inside Trust Dial limit. Timer pressure on urgent cards (reaction speed is scored).</td><td>Control</td></tr>
+<tr><td>5 Outcome</td><td>Engine applies result, health bar moves, Ghost Twin moves differently.</td><td>Payoff</td></tr>
+<tr><td>6 Black Box entry</td><td>Why-Receipt: trigger → data used → options → choice → who approved.</td><td>Trust</td></tr>
+<tr><td>7 End of week</td><td>Boss wave every ~15 days: <b>Fraud Boss</b> minigame, <b>Tax Day</b>, <b>Payroll Crunch</b>.</td><td>Climax</td></tr></table>
+<p><b>Win:</b> survive 90 days with cash &gt; 0 and Health ≥ 60. <b>Stars:</b> ★ survive, ★★ health ≥ 80, ★★★ beat Ghost Twin by 40%+ and zero unreviewed risky actions. Difficulty: Chill / Normal / Crisis (event density).</p>
+</section>
+
+<section id="novel"><h2>3. Why it's novel &amp; unique</h2>
+<div class="grid">
+<div class="card"><h4>👻 Ghost Twin (counterfactual)</h4>Most fintech demos show a dashboard. We show <i>what would have happened without us</i>, live. It's the proof judges want, and it's cheap: run the same sim twice with a "crew off" flag.</div>
+<div class="card"><h4>🎚️ Trust Dial</h4>Per-agent autonomy: <i>Suggest only → Ask first → Auto under ₹X</i>. The owner earns trust gradually, like leveling up. Answers "keep the owner in control".</div>
+<div class="card"><h4>📦 Black Box + Replay</h4>Hash-chained log (each entry hashes the previous). Scrub back in time and replay any decision with its Why-Receipt. Answers SDG 16 (accountable institutions).</div>
+<div class="card"><h4>🔮 Risk Radar (look-ahead)</h4>Shows a "danger fog" over next 14 days on the timeline: red days where cash dips below payroll. You react <i>before</i> the wave, not after.</div>
+<div class="card"><h4>🕹️ Fraud Boss minigame</h4>20-second spot-the-fake: two near-identical invoices, find the red flags with Sentinel hints. Makes fraud awareness fun and teachable.</div>
+<div class="card"><h4>🌱 Real-world mode</h4>Same engine accepts a CSV of real invoices/expenses. The game is a front end for an actually usable product (stretch goal, shown as 1 slide).</div>
+</div>
+</section>
+
+<section id="arch"><h2>4. Structure / Architecture</h2>
+<p class="sub">Zero-backend, static site. Plain JS modules + HTML5 Canvas (no heavy engine). Deploy on Netlify/Vercel/GitHub Pages in 1 minute. Colours match owners: <span class="ram">Ram</span> · <span class="sum">Sumit</span> · <span class="mas">Masoom</span>.</p>
+<div class="arch">
+<div class="box r"><b class="ram">/core — SIM ENGINE (Ram)</b><small>pure JS, no DOM, unit-testable</small>• <code>state.js</code> schema<br>• <code>engine.js</code> tick(day)<br>• <code>events.js</code> wave generator (seeded)<br>• <code>forecast.js</code> runway + risk radar<br>• <code>health.js</code> score formula<br>• <code>ghost.js</code> crew-off twin</div>
+<div class="box r"><b class="ram">/agents (Ram)</b><small>rule-based, deterministic</small>• <code>collector.js</code><br>• <code>treasurer.js</code><br>• <code>sentinel.js</code><br>• <code>scout.js</code><br>each returns <code>ActionCard[]</code></div>
+<div class="box m"><b class="mas">/ledger + /ai (Masoom)</b><small>trust &amp; explanation layer</small>• <code>blackbox.js</code> hash-chain log (SubtleCrypto SHA-256)<br>• <code>why.js</code> template receipts<br>• <code>llm.js</code> optional Claude call for friendly wording, <b>falls back to templates</b><br>• <code>trust.js</code> Trust Dial rules</div>
+<div class="box s"><b class="sum">/ui — GAME FRONT END (Sumit)</b><small>canvas + DOM</small>• <code>scene.js</code> shop world + crew sprites + wave animations<br>• <code>hud.js</code> health bar, cash, runway, day<br>• <code>cards.js</code> Action Card tray<br>• <code>ghostbar.js</code> twin comparison</div>
+<div class="box s"><b class="sum">/ui extras (Sumit)</b>• <code>briefing.js</code> morning modal<br>• <code>timeline.js</code> risk radar + replay scrubber<br>• <code>audio.js</code> sfx<br>• <code>style.css</code> theme</div>
+<div class="box m"><b class="mas">/content (Masoom)</b><small>data only, JSON</small>• <code>scenarios/*.json</code> (Chill, Normal, Crisis, Demo-90s)<br>• <code>fraud-pairs.json</code> minigame<br>• <code>copy.json</code> text, tooltips<br>• <code>/minigames/fraud.js</code></div>
+<div class="wide">⬆ EVENT BUS (<code>bus.js</code>, owned by Ram, frozen at H2): <code>day:start · event:hit · card:proposed · card:decided · state:changed · log:appended · game:over</code></div>
+<div class="wide">Persistence: <code>localStorage</code> (save, high score, black box). No server, no keys required. Optional Claude API key in <code>.env</code> only for friendlier wording.</div>
+</div>
+
+<h3>Data contracts (freeze at Hour 2, never change without telling the others)</h3>
+<pre>State   = { day, cash, receivables:[Invoice], payables:[Bill], payroll:{amt,nextDay}, taxDue:{amt,day},
+            health, runwayDays, trust:{collector,treasurer,sentinel,scout}, ghost:State|null }
+Invoice = { id, client, amt, dueDay, paidDay|null, lateRisk:0-1, flagged:bool, bankAcct }
+Event   = { id, day, type:'late_pay'|'big_expense'|'fraud'|'opportunity'|'tax'|'payroll', payload, severity:1-3 }
+Card    = { id, agent, eventId, title, why:[string], options:[{label,costInr,effect,risk}], urgent:bool, expiresDay }
+Decision= { cardId, option, by:'owner'|'auto', day }
+LogEntry= { n, day, agent, cardId, decision, whyReceipt, prevHash, hash }</pre>
+
+<h3>How a surprise flows (end to end)</h3>
+<pre>events.js → bus 'event:hit' → agents/*.js produce Card → bus 'card:proposed'
+→ ui/cards.js shows → owner clicks (or trust.js auto-decides) → bus 'card:decided'
+→ engine.js applies effect → state:changed → hud + ghostbar update
+→ why.js builds receipt → blackbox.js appends → log:appended</pre>
+</section>
+
+<section id="score"><h2>5. "Financial Health" story &amp; scoring</h2>
+<p>Displayed as a <b>living shop</b>: the storefront glows green and busy when healthy, flickers and cracks when cash is low, with a big <b>Health Heart (0–100)</b> and the <b>Ghost Twin</b> heart beside it.</p>
+<table><tr><th>Component</th><th>Weight</th><th>Formula idea</th></tr>
+<tr><td>Runway</td><td>30%</td><td>min(runwayDays/60,1)</td></tr>
+<tr><td>On-time obligations</td><td>25%</td><td>payroll/tax/bills paid by due day</td></tr>
+<tr><td>Collections</td><td>20%</td><td>% receivables collected on time</td></tr>
+<tr><td>Fraud losses avoided</td><td>15%</td><td>1 − fraud₹lost / fraud₹attempted</td></tr>
+<tr><td>Growth</td><td>10%</td><td>net revenue trend</td></tr></table>
+<p><b>Reaction Speed</b> (judges' criterion): avg days between event and decision, shown as a ⚡ meter and a final stat.</p>
+<p><b>SDG map:</b> <b>8</b> keeps small jobs and payroll safe, growth advice · <b>9</b> accessible fintech infrastructure for MSMEs, offline-capable static app · <b>16</b> fraud defence, tamper-evident audit log, transparent decisions.</p>
+</section>
+
+<section id="plan"><h2>6. 24-Hour Execution Plan</h2>
+<p class="sub">Assume start = H0 (e.g. 10:00). Shift times to your real clock. Rule: <b>always 2 people awake</b>. Total buffer ≈ 3.5h, not more. Feature freeze at H18.</p>
+<table><tr><th>Hour</th><th>Phase</th><th>Goal / Exit check</th></tr>
+<tr><td>H0–1</td><td><b>P0 Kickoff</b></td><td>Read PS, lock this plan, create repo, folders, branches. Each person confirms their ownership.</td></tr>
+<tr><td>H1–2</td><td><b>P0 Contract</b></td><td>Ram writes <code>state.js</code>, <code>bus.js</code>, sample JSON. Sumit and Masoom review. <b>Contracts frozen.</b></td></tr>
+<tr class="gate"><td>H2</td><td>GATE 1</td><td>Repo runs, empty screen loads, bus logs a fake event.</td></tr>
+<tr><td>H2–6</td><td><b>P1 Skeleton (parallel)</b></td><td>Ram: engine tick + events + Treasurer. Sumit: canvas shop + HUD + card tray with mock cards. Masoom: scenarios JSON, blackbox + why templates.</td></tr>
+<tr class="meal"><td>H3–4 (stagger)</td><td>🍛 Lunch</td><td>Go one at a time, 25 min each, so work never stops.</td></tr>
+<tr class="gate"><td>H6</td><td>GATE 2: Playable thin slice</td><td>Day advances, one late-pay event → card → approve → cash changes → log entry. Ugly is fine.</td></tr>
+<tr><td>H6–11</td><td><b>P2 Full features</b></td><td>Ram: Collector, Sentinel, Scout, forecast, health, Ghost Twin. Sumit: wave animations, briefing modal, ghost bar. Masoom: Trust Dial, Fraud Boss minigame, fraud pairs, LLM wrapper with fallback.</td></tr>
+<tr class="meal"><td>H9–10 (stagger)</td><td>🍕 Dinner</td><td>Same stagger. 30 min.</td></tr>
+<tr class="gate"><td>H11</td><td>GATE 3: Feature complete (core)</td><td>Full 90-day run possible on Demo scenario. Merge everything to <code>main</code>.</td></tr>
+<tr><td>H11–15</td><td><b>P3 Integration + juice</b></td><td>Wire UI to real agents. Risk Radar, replay scrubber, sound, difficulty modes. Ram fixes balance with Masoom's playtests.</td></tr>
+<tr class="sleep"><td>H15–19 rotation</td><td>😴 Sleep</td><td>H15–17 Sumit sleeps, H16–18 Masoom, H17–19 Ram (2h each, staggered so two are always up). Phones off.</td></tr>
+<tr class="gate"><td>H18</td><td>🧊 FEATURE FREEZE</td><td>No new features after this. Only bugs, polish, text.</td></tr>
+<tr><td>H18–20</td><td><b>P4 Hardening</b></td><td>Play 5 full runs. Fix crashes. Deploy to Netlify. Test on phone + projector resolution. Save-game works.</td></tr>
+<tr class="buf"><td>H20–21.5</td><td>🧯 SPARE BUFFER</td><td>Only for overruns or sleep. If everything's done, rest.</td></tr>
+<tr><td>H21.5–23</td><td><b>P5 Pitch</b></td><td>Masoom: slides (6). Ram: record backup demo video (90s). Sumit: final visual polish and title screen. Rehearse pitch twice.</td></tr>
+<tr class="gate"><td>H23</td><td>SUBMIT</td><td>Link, repo, video, README, slides uploaded.</td></tr>
+<tr class="buf"><td>H23–24</td><td>🧯 Final buffer</td><td>Breathe. Fix typos only.</td></tr></table>
+<h3>Phase summary (what each phase proves)</h3>
+<div class="grid">
+<div class="card"><b>P0–P1</b> Foundations: contracts + skeleton in parallel.</div>
+<div class="card"><b>P2</b> Core magic: 4 agents, Ghost Twin, Trust Dial, Black Box.</div>
+<div class="card"><b>P3</b> Game feel: animation, radar, replay, sound.</div>
+<div class="card"><b>P4–P5</b> Reliability and storytelling: deploy, demo video, pitch.</div>
+</div>
+</section>
+
+<section id="work"><h2>7. Work Allocation</h2>
+<div class="grid">
+<div class="card" style="border-color:var(--ram)"><h4 class="ram">Ram — Engine &amp; Agents (the brain)</h4>
+<b>Tools:</b> Claude Pro (Claude Code) for fast module generation + unit checks.<br>
+<b>Owns:</b> <code>/core</code>, <code>/agents</code>, <code>bus.js</code>, repo setup, merges to main, deploy.<br>
+<b>Deliverables:</b> sim engine, events, 4 agents, forecast, health score, Ghost Twin, balance tuning, backup demo video.<br>
+<b>Prompt tip:</b> give Claude the contract block from §4 and ask for one file at a time with an <code>assert</code> self-check.</div>
+<div class="card" style="border-color:var(--sum)"><h4 class="sum">Sumit — Game Front End (the feel)</h4>
+<b>Tools:</b> Antigravity Pro for UI/canvas iterations and visual checks.<br>
+<b>Owns:</b> <code>/ui</code>, <code>style.css</code>, <code>index.html</code>, assets, audio.<br>
+<b>Deliverables:</b> shop scene, crew sprites (emoji/SVG ok), HUD, card tray, briefing, ghost bar, risk radar, replay scrubber, title/end screens.<br>
+<b>Rule:</b> builds against <b>mock cards</b> from the contract until Gate 2, never waits on Ram.</div>
+<div class="card" style="border-color:var(--mas)"><h4 class="mas">Masoom — Trust, Content &amp; Story (the proof)</h4>
+<b>Tools:</b> Antigravity Pro for content, minigame and slides.<br>
+<b>Owns:</b> <code>/ledger</code>, <code>/ai</code>, <code>/content</code>, <code>/minigames</code>, README, slides, QA log.<br>
+<b>Deliverables:</b> Black Box, Why-Receipts, Trust Dial, Fraud Boss minigame, scenario JSONs, LLM wrapper with fallback, pitch deck, Q&amp;A prep, playtest bug list.</div>
+</div>
+
+<h3>Hour-by-hour per person</h3>
+<table><tr><th>Phase</th><th class="ram">Ram</th><th class="sum">Sumit</th><th class="mas">Masoom</th></tr>
+<tr><td>H0–2</td><td>Repo, <code>state.js</code>, <code>bus.js</code>, sample JSON</td><td>Review contracts, pick art style, <code>index.html</code> shell</td><td>Review contracts, draft 4 scenarios on paper</td></tr>
+<tr><td>H2–6</td><td><code>engine.js</code>, <code>events.js</code>, Treasurer</td><td>Canvas shop, HUD, card tray with mock cards</td><td><code>blackbox.js</code>, <code>why.js</code>, scenario JSON v1</td></tr>
+<tr><td>H6–11</td><td>Collector, Sentinel, Scout, forecast, health, Ghost</td><td>Wave anims, briefing modal, ghost bar</td><td>Trust Dial, Fraud Boss, <code>llm.js</code> fallback, fraud pairs</td></tr>
+<tr><td>H11–15</td><td>Wire agents to bus, balance with Masoom's runs</td><td>Wire UI to real state, risk radar, replay, sfx</td><td>Playtest, bug list, tune scenario numbers, start slides</td></tr>
+<tr><td>H18–20</td><td>Deploy, fix engine bugs</td><td>UI bugs, mobile/projector check</td><td>Full-run QA, README</td></tr>
+<tr><td>H21.5–23</td><td>Demo video</td><td>Title screen, polish</td><td>Slides, pitch rehearsal lead</td></tr></table>
+</section>
+
+<section id="contract"><h2>8. Collision-proof rules</h2>
+<ul>
+<li><b>Folder ownership:</b> you only edit your folders. Need a change elsewhere? Message the owner, don't edit.</li>
+<li><b>Git:</b> branches <code>ram/*</code>, <code>sumit/*</code>, <code>masoom/*</code>. Merge to <code>main</code> only at Gates (H2, H6, H11, H18) and by Ram. Pull before you start each block.</li>
+<li><b>Contracts frozen at H2.</b> Add fields only (never rename/remove) and announce in chat.</li>
+<li><b>Mocks:</b> <code>/content/mocks.json</code> has sample State and Cards so UI and ledger work without the engine.</li>
+<li><b>Shared files</b> (<code>index.html</code>, <code>main.js</code>) owned by Sumit; others add one import line via message.</li>
+<li><b>Check-in every 90 min:</b> 5 min standup: done / next / blocked.</li>
+<li><b>Single source of truth:</b> only engine mutates state; UI and ledger just listen on the bus.</li>
+</ul>
+</section>
+
+<section id="demo"><h2>9. Demo &amp; Pitch (3 minutes)</h2>
+<table><tr><th>Time</th><th>Show</th></tr>
+<tr><td>0:00</td><td>Problem in 15 s: "Meet Asha, owns a bakery. 6 tools, no finance team."</td></tr>
+<tr><td>0:15</td><td>Start <b>Demo-90s</b> scenario (compressed, scripted). Morning Briefing pops.</td></tr>
+<tr><td>0:40</td><td>Client pays late → Collector card → approve → cash saved. Ghost heart drops, ours holds.</td></tr>
+<tr><td>1:15</td><td>Fraud wave → Sentinel flags changed bank account → Fraud Boss minigame → blocked ₹ shown.</td></tr>
+<tr><td>1:50</td><td>Opportunity → Scout simulates affordability → Trust Dial lets Treasurer auto-handle a small bill.</td></tr>
+<tr><td>2:20</td><td>Open <b>Black Box</b>, replay one decision, show hash chain + Why-Receipt.</td></tr>
+<tr><td>2:40</td><td>End screen: Health 86 vs Ghost 31, stars, SDG 8/9/16, "works on real CSV".</td></tr></table>
+<p><b>Safety net:</b> scripted Demo-90s scenario is deterministic (seeded). Backup video + offline copy of build on a USB.</p>
+</section>
+
+<section id="qa"><h2>10. Judge Q&amp;A counters</h2>
+<div class="q"><b>Is it just a game, not a real solution?</b> The engine is a real cashflow/obligation model; the game is the interface. It takes a CSV of invoices and expenses (stretch slide) and outputs the same cards.</div>
+<div class="q"><b>Where's the AI?</b> Agents use rules + simple prediction (late-pay risk from client history, anomaly checks). Claude only rewrites explanations; if offline, templates run. So it never breaks and decisions stay explainable, not black-box.</div>
+<div class="q"><b>How does the owner stay in control?</b> Trust Dial per agent, approval cards, spending cap, every auto action reversible within the day, full log.</div>
+<div class="q"><b>How is the record trustworthy?</b> Each log entry hashes the previous one (SHA-256). Editing any past entry breaks the chain and the UI shows "tampered".</div>
+<div class="q"><b>How do you prove it works?</b> Ghost Twin: same seed, same surprises, crew off. Health and cash gap is the measurement. Reaction speed is tracked in days.</div>
+<div class="q"><b>What catches risks like late payments / missed deadlines / suspicious activity?</b> Collector (late), Treasurer + Risk Radar (deadlines), Sentinel (fraud). Each maps to a wave type.</div>
+<div class="q"><b>What's novel?</b> Ghost Twin counterfactual + Trust Dial progression + hash-chained Why-Receipts, packaged as a game.</div>
+<div class="q"><b>Why would a small business use it?</b> Zero setup, runs in browser, free, no bank login, plain language, 3-item daily briefing.</div>
+<div class="q"><b>Privacy/security?</b> All data stays in browser. No backend. LLM call (optional) gets only anonymised amounts and labels.</div>
+<div class="q"><b>Business model / scale?</b> Free tier for MSMEs, paid bank/accounting integrations (Tally, UPI, GST APIs), bank partnerships for fraud signals.</div>
+<div class="q"><b>Limitations?</b> Simulated data, rule-based predictions. Next: real integrations and ML on user history.</div>
+</section>
+
+<section id="cut"><h2>11. Cut list (if time runs short)</h2>
+<table><tr><th>Priority</th><th>Item</th></tr>
+<tr><td><b>MUST</b></td><td>Engine tick, 4 event types, Treasurer + Collector + Sentinel cards, HUD, approve/reject, health score, Ghost Twin, Black Box list, deploy.</td></tr>
+<tr><td><b>SHOULD</b></td><td>Trust Dial, Why-Receipts, Morning Briefing, Fraud Boss minigame, Scout.</td></tr>
+<tr><td><b>COULD</b></td><td>Risk Radar, replay scrubber, LLM wording, sound, difficulty modes.</td></tr>
+<tr><td><b>WON'T (mention in pitch)</b></td><td>CSV import, real bank APIs, multiplayer.</td></tr></table>
+<p>Cut from the bottom up. Never cut Ghost Twin or Black Box: they are the story.</p>
+<h3>Tech choices</h3>
+<p>Vanilla JS ES modules, HTML5 Canvas, CSS. No framework, no bundler, no backend (open <code>index.html</code> with a tiny static server). Emoji/SVG art keeps asset time near zero. Seeded RNG (<code>mulberry32</code>) makes demo deterministic. Hosting: Netlify drag-and-drop.</p>
+</section>
+
+</main></body></html>

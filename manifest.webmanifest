@@ -1,0 +1,1 @@
+{ "name": "Mind Your Funds", "short_name": "MindYourFunds", "start_url": "/", "display": "standalone", "background_color": "#0e1020", "theme_color": "#0e1020", "icons": [{ "src": "public/logo.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" }] }

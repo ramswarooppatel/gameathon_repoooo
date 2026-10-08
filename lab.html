@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mind Your Funds — Plan · Track · Grow</title>
+<link rel="icon" href="public/logo.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#08110e">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header>
+  <div class="brand"><span class="logo"><img src="public/logo.png" alt="Mind Your Funds"></span>
+    <div><h1>Mind Your Funds</h1><small>Plan · Track · Grow — 90-day business simulation</small></div></div>
+  <div class="rank"><div class="rk"><b id="rk-name">Apprentice</b><span id="rk-xp">0 XP</span></div><i><u id="rk-bar"></u></i><small id="rk-next"></small></div>
+  <div class="ctl"><a href="workspace.html"><button>My business</button></a><button id="restart">New run</button><button id="auto">Auto-play</button><button id="next" class="pri">Next day ▸</button></div>
+</header>
+<section id="hud">
+  <div class="stat"><span>Day</span><b><em id="h-day">0</em><small>/90</small></b></div>
+  <div class="stat"><span>Cash</span><b id="h-cash">₹0</b></div>
+  <div class="stat"><span>Runway</span><b><em id="h-run">0</em><small> days</small></b></div>
+  <div class="stat"><span>GST payable</span><b id="h-gst">—</b></div>
+  <div class="stat"><span>Avg response</span><b id="h-react">—</b></div>
+  <div class="hearts">
+    <div><span>Business health</span><b id="h-health">100</b><i><u id="b-you"></u></i></div>
+    <div><span>Unassisted twin</span><b id="h-ghealth">100</b><i><u id="b-ghost" class="g"></u></i></div>
+  </div>
+</section>
+<main>
+  <section class="col">
+    <canvas id="scene" width="520" height="280"></canvas>
+    <div id="alert" class="alert" hidden></div>
+    <div class="panel"><h3>Missions <span id="m-count" class="pill">0/6</span></h3><ul id="missions"></ul></div>
+    <div class="panel"><h3>Autonomy settings</h3><div id="trust"></div><p class="mu small">Auto-approve lets a specialist act alone only on decisions at or below the cap. Everything is logged.</p></div>
+  </section>
+  <section class="col"><h3 class="sec">Decisions <span id="c-count" class="pill">0</span></h3><div id="cards"></div>
+    <div class="panel"><h3>Ask the CFO <small class="mu">AI · Groq</small></h3>
+      <div class="row"><input id="q" placeholder="Can I afford a new hire next month?"><button id="ask">Ask</button></div><p id="a" class="mu"></p></div>
+  </section>
+  <section class="col">
+    <div class="panel"><h3>GST position</h3><div id="gst" class="mu"></div><p class="mu small">Simulation values. Verify with a Chartered Accountant.</p></div>
+    <div class="panel"><h3>Audit ledger <span id="chain" class="pill">Verified</span></h3>
+      <div class="row"><label class="mu small"><input type="checkbox" id="ai"> AI wording</label><button id="verify">Verify</button><button id="tamper">Tamper test</button><button id="export">Export</button></div>
+      <ol id="log"></ol></div>
+  </section>
+</main>
+<div id="toasts"></div>
+<div id="start" class="overlay"><div class="modal">
+  <span class="logo big"><img src="public/logo.png" alt=""></span>
+  <h2>Run the business. Beat the shocks.</h2>
+  <p class="mu">Steer a small Indian business through 90 days of late payers, fraud attempts, GST deadlines and growth chances. Your AI finance team advises; you decide; every decision is recorded in a tamper-evident ledger.</p>
+  <div class="row"><input id="nick" placeholder="Your name" maxlength="20"><input id="seed" type="number" value="42" title="Scenario seed"></div>
+  <button id="begin" class="pri wide">Start quarter</button>
+</div></div>
+<div id="end" class="overlay" hidden><div class="modal"><h2 id="end-t"></h2><p id="end-s" class="mu"></p><div id="end-b" class="badges"></div><h3>Leaderboard</h3><ol id="lb" class="mu"></ol><button id="end-new" class="pri wide">Play again</button></div></div>
+<script type="module" src="main.js"></script>
+</body></html>

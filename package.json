@@ -1,0 +1,12 @@
+{
+  "name": "mind-your-funds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx netlify-cli dev",
+    "serve": "npx serve .",
+    "check": "node core/selfcheck.js",
+    "sync-env": "node scripts/sync-env.mjs"
+  }
+}

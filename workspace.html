@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Business Workspace — Mind Your Funds</title>
+<link rel="icon" href="public/logo.png"><link rel="stylesheet" href="style.css">
+<style>
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:16px 20px}.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi span{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.7px}.kpi b{display:block;font-size:22px}
+.wgrid{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:0 20px 24px}@media(max-width:1000px){.wgrid{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 8px;border-bottom:1px solid #15271f;text-align:left}th{color:var(--mu);font-weight:600;font-size:11px;text-transform:uppercase}td.n,th.n{text-align:right}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px}.form label{display:grid;gap:3px;color:var(--mu);font-size:11px;text-transform:uppercase}.form .full{grid-column:1/-1}
+.al{padding:7px 10px;border-left:3px solid var(--warn);background:#161d15;margin:6px 0;border-radius:6px}.al.high{border-color:var(--bad);background:#241517}
+.tag{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid var(--line)}.tag.paid{border-color:var(--acc);color:var(--acc2)}.tag.over{border-color:var(--bad);color:var(--bad)}
+a.back{color:var(--mu);text-decoration:none}
+</style></head>
+<body>
+<header>
+  <div class="brand"><span class="logo"><img src="public/logo.png" alt="Mind Your Funds"></span><div><h1>Business Workspace</h1><small id="biz">Your books, GST and cash in one place</small></div></div>
+  <div class="ctl" style="margin-left:auto"><span id="mode" class="pill">Local only</span><a class="back" href="index.html"><button>Play simulation</button></a></div>
+</header>
+<div class="kpis">
+  <div class="kpi"><span>Cash</span><b id="k-cash">₹0</b></div>
+  <div class="kpi"><span>To collect</span><b id="k-recv">₹0</b></div>
+  <div class="kpi"><span>To pay</span><b id="k-pay">₹0</b></div>
+  <div class="kpi"><span>GST payable (month)</span><b id="k-gst">₹0</b></div>
+  <div class="kpi"><span>Runway</span><b id="k-run">0 mo</b></div>
+  <div class="kpi"><span>Business health</span><b id="k-health">—</b><i><u id="k-bar"></u></i></div>
+</div>
+<div class="wgrid">
+  <div>
+    <div class="panel"><h3>Alerts <span id="al-n" class="pill">0</span></h3><div id="alerts"></div></div>
+    <div class="panel"><h3>Invoices &amp; bills</h3>
+      <div style="overflow:auto"><table><thead><tr><th>Type</th><th>No.</th><th>Party</th><th>Date</th><th>Due</th><th class="n">Taxable</th><th class="n">GST</th><th class="n">Total</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="row" style="margin-top:10px"><button id="csv">Export CSV (registers)</button><button id="explain">Explain my month (AI)</button></div><p id="ai-out" class="mu"></p>
+    </div>
+  </div>
+  <div>
+    <div class="panel"><h3>Add entry</h3>
+      <form id="f" class="form">
+        <label>Type<select id="kind"><option value="sale">Sale (invoice I issued)</option><option value="purchase">Purchase (bill I received)</option></select></label>
+        <label>Invoice no.<input id="number"></label>
+        <label class="full">Party name<input id="party" required></label>
+        <label class="full">Party GSTIN<input id="pg" maxlength="15" style="text-transform:uppercase"></label>
+        <label>Date<input id="date" type="date" required></label><label>Due date<input id="due" type="date"></label>
+        <label>Taxable value ₹<input id="taxable" type="number" min="0" step="0.01" required></label>
+        <label>GST %<select id="rate"><option>0</option><option>5</option><option>12</option><option selected>18</option><option>28</option><option>40</option></select></label>
+        <label>Supply<select id="supply"><option value="intra">Same state (CGST+SGST)</option><option value="inter">Other state (IGST)</option></select></label>
+        <label>Paid on<input id="paid" type="date"></label>
+        <button class="pri full" type="submit">Add entry</button><small id="gs" class="mu full"></small>
+      </form></div>
+    <div class="panel"><h3>GST this month</h3><div id="gst" class="mu"></div><p class="mu small" id="due"></p><p class="mu small">Estimates for planning. Verify with your CA before filing.</p></div>
+    <div class="panel"><h3>My business</h3>
+      <div class="form"><label class="full">Business name<input id="pn"></label><label class="full">Your GSTIN<input id="pgst" maxlength="15" style="text-transform:uppercase"></label>
+      <label class="full">Opening cash balance ₹<input id="pob" type="number" step="0.01"></label><button id="psave" class="full">Save</button></div></div>
+    <div class="panel"><h3>Sync across devices</h3><div id="auth"></div></div>
+  </div>
+</div>
+<script type="module" src="workspace.js"></script>
+</body></html>
