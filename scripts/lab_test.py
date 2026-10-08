@@ -113,6 +113,23 @@ try:
         check('ghost twin reveal', 'SAME BUSINESS' in cmp.upper() and 'YOUR BUSINESS' in cmp.upper() and 'UNASSISTED TWIN' in cmp.upper() and 'Health' in cmp and ('FinCrew helped' in cmp or 'twin' in cmp))
         pg.click('#end-new'); pg.wait_for_timeout(300)
         check('New run on the result popup opens the Start overlay', pg.locator('#end').is_hidden() and pg.locator('#start').is_visible())
+        # ---- auto-play stops for ANY open decision and carries on by itself once it is answered
+        pg.goto('http://localhost:3136/lab.html'); pg.wait_for_selector('#begin'); pg.click('#begin'); pg.wait_for_timeout(400)
+        pg.click('#auto'); check('auto-play starts', pg.locator('#auto').inner_text() == 'Pause')
+        pg.wait_for_selector('.card:has-text("will pay")', timeout=15000); pg.wait_for_timeout(300)
+        d1 = pg.text_content('#h-day'); pg.wait_for_timeout(1800)
+        check('stopped at the first decision and waits', pg.text_content('#h-day') == d1 and pg.locator('#auto').inner_text() == 'Waiting for your decision')
+        pg.locator('.card:has-text("will pay") button.opt.rec').first.click(); pg.wait_for_timeout(200)
+        check('answering resumes auto-play on its own', pg.locator('#auto').inner_text() == 'Pause')
+        pg.wait_for_function(f"+document.getElementById('h-day').textContent > {int(d1)}", timeout=5000)
+        check('sound-decision streak shows and earns bonus XP', 'Sound streak x1' in pg.locator('#combo').inner_text() and 'Sound streak x1' in pg.locator('.toast', has_text='Sound streak').first.inner_text())
+        pg.wait_for_selector('.card:has-text("Big bill")', timeout=15000); pg.wait_for_timeout(300)           # a NON-urgent card must stop auto-play too
+        d2 = pg.text_content('#h-day'); pg.wait_for_timeout(1800)
+        check('a non-urgent decision also stops auto-play', pg.text_content('#h-day') == d2 and not pg.locator('.card:has-text("Big bill") .urgent').count() and pg.locator('#auto').inner_text() == 'Waiting for your decision')
+        pg.click('#auto'); pg.wait_for_timeout(200)
+        check('clicking while waiting switches auto-play off for good', pg.locator('#auto').inner_text() == 'Auto-play')
+        pg.locator('.card:has-text("Big bill") button.opt.rec').first.click(); pg.wait_for_timeout(1500)
+        check('and answering does not restart it', pg.text_content('#h-day') == d2 and pg.locator('#auto').inner_text() == 'Auto-play')
         # ---- a full run where the owner follows every recommendation beats the twin
         pg.goto('http://localhost:3136/lab.html'); pg.wait_for_selector('#begin'); pg.click('#begin'); pg.wait_for_timeout(400)
         for _ in range(95):
@@ -121,6 +138,7 @@ try:
             pg.click('#next'); pg.wait_for_timeout(15)
         pg.wait_for_selector('#end:not([hidden])', timeout=8000); cmp = pg.locator('#compare').inner_text()
         check('following the crew wins', 'FinCrew helped you finish' in cmp)
+        check('sound-decision streak mission and end-screen line', pg.locator('#missions li.done', has_text='Sound Judgement').count() == 1 and 'best sound-decision streak' in pg.locator('#end-s').inner_text())
         check('no console errors', not errs)
         if errs: print(errs[:3])
         b.close()

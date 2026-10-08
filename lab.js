@@ -6,7 +6,7 @@ import { receipt } from './ledger/why.js';
 import { explain, cfo } from './ai/groq.js';
 import * as db from './db/supabase.js';
 import { drawScene } from './ui/scene.js';
-import { renderHud, renderTrust, renderProgress } from './ui/hud.js';
+import { renderHud, renderTrust, renderProgress, toast } from './ui/hud.js';
 import { progress } from './core/progress.js';
 import { renderCards } from './ui/cards.js';
 import { mulberry32 } from './core/rng.js';
@@ -14,10 +14,10 @@ import { snapshot, impact, impactWithoutSnapshot, injectStyles } from './ui/coac
 import { icon } from './app/icons.js';
 
 const $ = (id) => document.getElementById(id);
-let g, gh, ledger, last, timer = null, history = [];      // history: deep snapshots of both games, one per day advance (memory only, never saved)
+let g, gh, ledger, last, timer = null, autoOn = false, history = [];      // history: deep snapshots of both games, one per day advance (memory only, never saved)
 
 async function start() {
-  clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; $('end').hidden = true; $('start').hidden = true;
+  stopAuto(); $('end').hidden = true; $('start').hidden = true;
   const seed = +$('seed').value || 42;
   g = createGame(seed); gh = createGame(seed, { crew: false }); impactBox.hidden = true; history = [];
   ledger = createLedger('fincrew-ledger'); ledger.clear();
@@ -62,11 +62,23 @@ function showImpact(c, option, res) {
   impactBox.append(more);
 }
 
+// ---- auto-play: runs days on a timer, stops the moment a decision is open, and carries on by itself once everything is answered ----
+function runAuto() { clearInterval(timer); timer = setInterval(step, 600); $('auto').textContent = 'Pause'; $('auto').title = 'Switch auto-play off'; }
+function holdForDecision() { clearInterval(timer); timer = null; $('auto').textContent = 'Waiting for your decision'; $('auto').title = 'Auto-play carries on when you decide. Click to switch it off.'; }
+function stopAuto() { autoOn = false; clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; $('auto').title = ''; }
+
 function decideAndEmit(id, idx, by = 'owner') {
   const card = g.cards.find((c) => c.id === id), before = card && snapshot(g, card);
   const d = decide(g, id, idx, by);
-  if (d) { bus.emit('card:decided', d); showImpact(d.card, d.option, impact(g, d.card, d.option, before)); }
+  if (d) {
+    bus.emit('card:decided', d); showImpact(d.card, d.option, impact(g, d.card, d.option, before));
+    // Sound-decision streak: a decision that is not high risk and made within a day extends it; anything else resets it. Bonus XP grows with the streak (capped at x5).
+    const sound = by === 'owner' && d.option.risk !== 'high' && d.reactionDays <= 1;
+    g.combo = sound ? (g.combo || 0) + 1 : 0; g.bestCombo = Math.max(g.bestCombo || 0, g.combo);
+    if (sound) { const xp = 10 * Math.min(g.combo, 5); g.bonus = (g.bonus || 0) + xp; toast(`Sound streak x${g.combo}`, `+${xp} XP for a quick, low-risk call`); }
+  }
   render();
+  if (autoOn && !g.cards.length && !g.s.over) runAuto();            // the last open decision was answered: auto-play carries on
 }
 
 // ---- rewind: one step back, by restoring deep snapshots of BOTH games (the engine is never run backwards) ----
@@ -77,7 +89,7 @@ prev.append(icon('arrow-right', { size: 14 }), ' Previous Day'); prev.firstChild
 $('next').before(prev);
 function rewind() {
   const h = history.pop(); if (!h) return;
-  clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play';
+  stopAuto();
   const trust = g.s.trust;                                          // autonomy settings are controls, not simulation: keep what the Captain has set now
   g = restore(h.game); gh = restore(h.ghost); g.s.trust = trust;
   impactBox.hidden = true; render();
@@ -89,14 +101,17 @@ function step() {
   history.push({ game: snap(g), ghost: snap(gh) });
   const r = nextDay(g); nextDay(gh);
   if (r.cards.length) impactBox.hidden = true;                      // a new decision is open: clear the previous read-out so it cannot be mistaken for this one
-  r.decided.forEach((d) => { bus.emit('card:decided', d); if (d.by !== 'owner' && !g.cards.length) showImpact(d.card, d.option, impactWithoutSnapshot(d.card, d.option, d.by)); });   // timeout/auto read-out only while nothing else is open
+  r.decided.forEach((d) => { if (d.by === 'timeout') g.combo = 0; bus.emit('card:decided', d); if (d.by !== 'owner' && !g.cards.length) showImpact(d.card, d.option, impactWithoutSnapshot(d.card, d.option, d.by)); });   // timeout/auto read-out only while nothing else is open
   render();
-  if (g.s.over) bus.emit('game:over', g.s);
-  else if (timer && g.cards.some((c) => c.urgent)) { clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; } // pause on urgent
+  if (g.s.over) { stopAuto(); bus.emit('game:over', g.s); }
+  else if (autoOn && g.cards.length) holdForDecision();            // any open decision stops auto-play; it resumes when the last one is answered
 }
 
+const comboEl = Object.assign(document.createElement('small'), { id: 'combo', title: 'Each decision that is not high risk and made within a day extends the streak and earns bonus XP' }); comboEl.style.cssText = 'display:block;color:var(--acc2);margin-top:2px';
+$('rk-next').after(comboEl);
 function render() {
   prev.disabled = !history.length;
+  comboEl.textContent = g.combo ? `Sound streak x${g.combo} · best ${g.bestCombo}` : g.bestCombo ? `Streak reset · best ${g.bestCombo}` : 'Sound streak: decide within a day, avoid high-risk options';
   renderHud(g.s, gh.s);
   last = progress(g, gh); renderProgress(last);
   renderCards($('cards'), g.cards, g.s.day, (id, i) => decideAndEmit(id, i));
@@ -107,7 +122,7 @@ async function finish(s) {
   const stars = !s.won ? 0 : s.health >= gs.health * 1.4 ? 3 : s.health >= 80 ? 2 : 1;
   const react = st.decisions ? st.reactionSum / st.decisions : null;
   $('end-t').textContent = s.won ? 'Quarter complete: business survived' : 'Business ran out of cash';
-  $('end-s').textContent = `${stars ? stars + (stars === 1 ? ' star' : ' stars') : 'No stars'} · rank ${last.rank} (${last.xp} XP)`;
+  $('end-s').textContent = `${stars ? stars + (stars === 1 ? ' star' : ' stars') : 'No stars'} · rank ${last.rank} (${last.xp} XP) · best sound-decision streak ${last.bestCombo}`;
   document.getElementById('compare')?.remove();
   const gap = s.health - gs.health, inr0 = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
   const side = (cls, tag, m, health) => { const d = document.createElement('div'); d.className = 'side ' + cls; d.append(Object.assign(document.createElement('span'), { className: 'tag', textContent: tag }), Object.assign(document.createElement('b'), { className: 'big', textContent: `Health ${health}` }),
@@ -126,11 +141,11 @@ async function finish(s) {
 
 $('next').onclick = step;
 // New run only SHOWS the Start overlay (pausing Auto-play). Nothing is reset until Start quarter runs start(), so the current run is never lost silently.
-const openStart = () => { clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; $('end').hidden = true; $('start').dataset.mode = 'new'; $('start').hidden = false; };
+const openStart = () => { stopAuto(); $('end').hidden = true; $('start').dataset.mode = 'new'; $('start').hidden = false; };
 $('restart').onclick = $('end-new').onclick = openStart;
 $('auto').onclick = () => {
-  if (timer) { clearInterval(timer); timer = null; $('auto').textContent = 'Auto-play'; return; }
-  timer = setInterval(step, 600); $('auto').textContent = 'Pause';
+  if (autoOn) return stopAuto();
+  autoOn = true; g.cards.length ? holdForDecision() : runAuto();
 };
 $('verify').onclick = async () => {
   const bad = await ledger.verify();
