@@ -2,7 +2,8 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Oxro Labs · Finance Desk</title>
 <link rel="icon" href="public/logo.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#08110e">
-<link rel="stylesheet" href="app/app.css"></head>
+<script>(function(){try{var p=localStorage.getItem('myf-theme')||'system',l=p==='light'||(p==='system'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.dataset.theme=l?'light':'dark';document.documentElement.dataset.fs=localStorage.getItem('myf-fs')||'md';document.documentElement.dataset.contrast=localStorage.getItem('myf-contrast')||'normal';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>
+<link rel="stylesheet" href="app/app.css"><link rel="stylesheet" href="app/components.css"><link rel="stylesheet" href="app/theme-light.generated.css"><link rel="stylesheet" href="app/theme.css"></head>
 <body>
 <div id="app" hidden>
   <aside id="sidebar">
@@ -106,6 +107,12 @@
     </header>
 
     <main id="view"></main>
+    <footer class="app-footer" role="contentinfo">
+      <span>&copy; 2026 Oxro Labs &middot; Finance Desk by Mind Your Funds &middot; Planning estimates, not tax or legal advice</span>
+      <nav aria-label="Legal and help">
+        <a href="welcome.html">About</a><a href="welcome.html#different">What makes it different</a><a href="legal/terms.html">Terms</a><a href="legal/privacy.html">Privacy</a><a href="legal/disclaimer.html">Disclaimer</a><a href="legal/accessibility.html">Accessibility</a>
+      </nav>
+    </footer>
   </div>
 
   <!-- Mobile Bottom Navigation Bar (<= 860px) -->
@@ -182,6 +189,7 @@
 </div>
 <div id="auth" class="overlay"><div class="modal"></div></div>
 <div id="toasts"></div>
+<script type="module" src="app/extras.js"></script>
 <script type="module" src="app/main.js"></script>
 <script>
   // UI Interaction Controller for Sidebar & Mobile Drawer

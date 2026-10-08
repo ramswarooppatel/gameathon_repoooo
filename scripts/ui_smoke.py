@@ -4,6 +4,7 @@ import subprocess, sys, os, time, json
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC = ['welcome.html', 'legal/terms.html', 'legal/privacy.html', 'legal/disclaimer.html', 'legal/accessibility.html']
 PAGES = ['dashboard', 'transactions', 'parties', 'approvals', 'compliance', 'reports', 'insights', 'rewards', 'audit', 'team', 'settings', 'styleguide']
 srv = subprocess.Popen([sys.executable, '-m', 'http.server', '3122', '--directory', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
@@ -21,8 +22,9 @@ def set_role(pg, role):
 try:
     with sync_playwright() as p:
         b = p.chromium.launch(channel='msedge')
-        for width, height in [(1440, 900), (768, 1024), (375, 812)]:
+        for theme, width, height in [('dark', 1440, 900), ('light', 1440, 900), ('light', 768, 1024), ('dark', 375, 812), ('light', 375, 812)]:
             ctx = b.new_context(viewport={'width': width, 'height': height}, service_workers='block')
+            ctx.add_init_script(f"localStorage.setItem('myf-theme','{theme}');")
             pg = ctx.new_page(); errs = []
             pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
             pg.on('pageerror', lambda e: errs.append('PAGEERROR ' + str(e)))
@@ -36,9 +38,13 @@ try:
                     pg.evaluate(f"location.hash='{name}'"); pg.wait_for_timeout(450)
                     ov = pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
                     empty = pg.evaluate("document.querySelector('#view')?.children.length || 0")
-                    if ov > 2: problems.append(f'{width}px {role} #{name}: horizontal overflow {ov}px')
-                    if not empty: problems.append(f'{width}px {role} #{name}: empty view')
-            for e in sorted(set(errs)): problems.append(f'{width}px console: {e[:160]}')
+                    if ov > 2: problems.append(f'{theme} {width}px {role} #{name}: horizontal overflow {ov}px')
+                    if not empty: problems.append(f'{theme} {width}px {role} #{name}: empty view')
+            for name in STATIC:
+                pg.goto('http://localhost:3122/' + name); pg.wait_for_timeout(500)
+                if pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") > 2: problems.append(f'{theme} {width}px {name}: horizontal overflow')
+                if pg.evaluate("document.documentElement.dataset.theme") != theme: problems.append(f'{theme} {width}px {name}: theme not applied')
+            for e in sorted(set(errs)): problems.append(f'{theme} {width}px console: {e[:160]}')
             ctx.close()
         b.close()
 finally:

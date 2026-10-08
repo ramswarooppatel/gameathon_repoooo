@@ -6,6 +6,7 @@ import { GST_LATE_INTEREST_PA } from '../tax/config.js';
 import { ask } from '../ai/groq.js';
 import { scratch, confetti } from './fx.js';
 import { parseBank, matchBank } from './bank.js';
+import { appearanceCard } from './extras.js';
 
 const KIND = { sale: 'Sale', purchase: 'Purchase', expense: 'Expense', salary: 'Salary' };
 const card = (title, ...kids) => h('section', { class: 'card' }, h('h3', {}, title), ...kids);
@@ -933,6 +934,7 @@ function settings(S, A) {
       h('label', { class: 'full' }, 'Company name', name), h('label', { class: 'full' }, 'Company GSTIN', gstin), h('label', { class: 'full' }, 'Opening cash balance ₹', ob), h('label', { class: 'full' }, 'Monthly collection goal ₹', goal),
       h('label', { class: 'full' }, 'Leaderboard nickname', nick), h('label', { class: 'full chk' }, opt, ' Show me on the leaderboard (nickname, XP and health only)'), h('button', { class: 'pri full', type: 'submit' }, 'Save'))),
     h('div', { class: 'stack' },
+      appearanceCard(h),
       card('Account & storage', h('p', {}, h('b', {}, S.repo.mode === 'cloud' ? 'Supabase cloud database' : 'Demo mode (this browser only)')), h('p', { class: 'mu' }, `${S.user.email} · role: ${S.repo.role}`),
         S.repo.mode === 'demo' && h('p', { class: 'al med' }, 'Demo mode does not sync. Sign in to store everything in your Supabase database.'), h('button', { onclick: A.signOut }, S.repo.mode === 'cloud' ? 'Sign out' : 'Exit demo')),
       S.can('write') && recurringCard(S, A),

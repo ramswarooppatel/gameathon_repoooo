@@ -254,15 +254,23 @@ window.addEventListener('hashchange', () => { view = location.hash.slice(1) || '
 function modal(...kids) { const box = $('#auth'); box.hidden = false; $('#app').hidden = true; const m = box.querySelector('.modal'); m.textContent = ''; m.append(h('span', { class: 'logo big' }, h('img', { src: 'public/logo.png', alt: '' })), ...kids); }
 const run = (msg, fn) => async () => { msg.textContent = 'Working…'; try { await fn(); } catch (x) { msg.textContent = x.message; } };
 
+const TERMS_VERSION = '2026-10-08';
+function legalLinks() { return h('p', { class: 'legal-links' }, h('a', { href: 'legal/terms.html', target: '_blank', rel: 'noopener' }, 'Terms'), ' · ', h('a', { href: 'legal/privacy.html', target: '_blank', rel: 'noopener' }, 'Privacy'), ' · ', h('a', { href: 'legal/disclaimer.html', target: '_blank', rel: 'noopener' }, 'Disclaimer'), ' · ', h('a', { href: 'welcome.html', target: '_blank', rel: 'noopener' }, 'About')); }
+
 function authScreen() {
-  const sb = db.client(), email = h('input', { type: 'email', placeholder: 'you@oxrolabs.com', autocomplete: 'email' }), pw = h('input', { type: 'password', placeholder: 'Password (min 6 characters)', autocomplete: 'current-password' }), msg = h('p', { class: 'mu small' });
+  const sb = db.client(), email = h('input', { type: 'email', placeholder: 'you@oxrolabs.com', autocomplete: 'email', 'aria-label': 'Work email' }), pw = h('input', { type: 'password', placeholder: 'Password (min 6 characters)', autocomplete: 'current-password', 'aria-label': 'Password' }), msg = h('p', { class: 'mu small', role: 'status', 'aria-live': 'polite' });
+  const agree = h('input', { type: 'checkbox', id: 'agree' });
+  const needConsent = () => { if (!agree.checked) throw new Error('Please accept the Terms and Privacy notice to create an account.'); };
+  const meta = () => ({ options: { data: { terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION } } });
   modal(h('h2', {}, 'Oxro Labs · Finance Desk'), h('p', { class: 'mu' }, 'Invoices, GST, approvals and cash flow for the whole team. Sign in with your company email.'),
-    ...(sb ? [email, pw, h('div', { class: 'row' },
+    ...(sb ? [email, pw,
+      h('label', { class: 'consent', for: 'agree' }, agree, h('span', {}, 'I agree to the ', h('a', { href: 'legal/terms.html', target: '_blank', rel: 'noopener' }, 'Terms of Service'), ' and have read the ', h('a', { href: 'legal/privacy.html', target: '_blank', rel: 'noopener' }, 'Privacy Notice'), '. I understand figures are planning estimates, not tax advice. (Needed to create an account.)')),
+      h('div', { class: 'row' },
       h('button', { class: 'pri', onclick: run(msg, async () => { const { error } = await sb.auth.signInWithPassword({ email: email.value, password: pw.value }); if (error) throw error; boot(); }) }, 'Sign in'),
-      h('button', { onclick: run(msg, async () => { const { data, error } = await sb.auth.signUp({ email: email.value, password: pw.value }); if (error) throw error; if (data.session) boot(); else msg.textContent = 'Account created. Check your email to confirm, then sign in.'; }) }, 'Create account'),
-      h('button', { onclick: run(msg, async () => { await db.signInEmail(email.value); msg.textContent = 'Check your inbox for the sign-in link.'; }) }, 'Email me a link'))]
+      h('button', { onclick: run(msg, async () => { needConsent(); const { data, error } = await sb.auth.signUp({ email: email.value, password: pw.value, ...meta() }); if (error) throw error; if (data.session) boot(); else msg.textContent = 'Account created. Check your email to confirm, then sign in.'; }) }, 'Create account'),
+      h('button', { onclick: run(msg, async () => { needConsent(); await db.signInEmail(email.value); msg.textContent = 'Check your inbox for the sign-in link.'; }) }, 'Email me a link'))]
       : [h('p', { class: 'al med' }, 'Cloud database is not configured. Set SUPABASE_ANON_KEY in .env and run npm run sync-env.')]),
-    msg, h('hr'), h('button', { onclick: () => boot(true) }, 'Continue in demo mode'), h('p', { class: 'small mu' }, 'Demo mode keeps data in this browser only.'));
+    msg, h('hr'), h('button', { onclick: () => boot(true) }, 'Continue in demo mode'), h('p', { class: 'small mu' }, 'Demo mode keeps data in this browser only.'), legalLinks());
 }
 
 function orgScreen() {
@@ -272,7 +280,7 @@ function orgScreen() {
     h('h3', {}, 'Create a workspace (you become admin)'), name, you, h('label', { class: 'small mu' }, 'Only allow emails from this domain'), dom,
     h('button', { class: 'pri', onclick: run(m1, async () => { await createOrg(sb, name.value, you.value || em.split('@')[0], dom.value); boot(); }) }, 'Create workspace'), m1,
     h('hr'), h('h3', {}, 'Or join an existing team'), code, you2, h('button', { onclick: run(m2, async () => { await joinOrg(sb, code.value, you2.value || em.split('@')[0]); boot(); }) }, 'Join with code'), m2,
-    h('hr'), h('button', { onclick: A.signOut }, 'Sign out'));
+    h('hr'), h('button', { onclick: A.signOut }, 'Sign out'), legalLinks());
 }
 
 async function boot(allowDemo = false) {

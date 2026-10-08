@@ -1,0 +1,96 @@
+/* Theme layer: light mode, high contrast, text size, skip link, footer, notices. Loads after app.css and theme-light.generated.css. */
+
+/* ---------------------------------------------------------------- light tokens */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f6f4; --bg2: #ffffff; --bg-sidebar: #ffffff;
+  --card: #ffffff; --card-hover: #f4f8f6; --card-subtle: #f7faf8;
+  --line: #d6e1db; --line-subtle: #e6eee9; --line-focus: #0b8f5a;
+  --tx: #17231d; --tx-title: #0a1410; --mu: #4f635a; --mu-dark: #72857b;
+  --acc: #0f9d62; --acc-hover: #0c8a56; --acc2: #0a7a4d; --acc-dark: #d8f1e4; --acc-glow: rgba(15, 157, 98, 0.18);
+  --warn: #a8690a; --warn-bg: rgba(245, 185, 66, 0.22);
+  --bad: #c0392b; --bad-bg: rgba(239, 91, 91, 0.12);
+  --info: #0a74a8; --info-bg: rgba(56, 189, 248, 0.16);
+  --sh-sm: 0 1px 2px rgba(20, 40, 30, 0.08); --sh-md: 0 4px 12px rgba(20, 40, 30, 0.1);
+  --sh-lg: 0 12px 28px rgba(20, 40, 30, 0.14); --sh-xl: 0 20px 48px rgba(20, 40, 30, 0.2);
+}
+html[data-theme="dark"] { color-scheme: dark; }
+
+/* things the generator cannot infer */
+html[data-theme="light"] body { background: radial-gradient(1000px 420px at 70% -12%, #dff1e8 0%, transparent 60%), var(--bg); }
+html[data-theme="light"] .al { background: #fff8e6; border-left-color: var(--warn); }
+html[data-theme="light"] .al.high { background: #fdecec; border-left-color: var(--bad); }
+html[data-theme="light"] .tag, html[data-theme="light"] .pill { background: #f1f6f3; }
+html[data-theme="light"] .pill.warn { background: #fff4d6; }
+html[data-theme="light"] .overlay { background: rgba(15, 30, 24, 0.55); }
+html[data-theme="light"] .modal, html[data-theme="light"] .dlg { box-shadow: var(--sh-xl); }
+html[data-theme="light"] .toast { background: #ffffff; color: var(--tx); border-color: var(--acc); box-shadow: var(--sh-lg); }
+html[data-theme="light"] .toast b { color: var(--acc2); }
+html[data-theme="light"] table th { background: #f1f6f3; color: var(--mu); }
+html[data-theme="light"] .chart text, html[data-theme="light"] svg text { fill: #4f635a; }
+html[data-theme="light"] .code { background: #f1f6f3; }
+html[data-theme="light"] .ring circle:first-child { stroke: #e3ece7; }
+html[data-theme="light"] .msg.me { background: #dcf3e8; }
+html[data-theme="light"] .msg.ai { background: #f4f8f6; }
+html[data-theme="light"] .badge.on { background: #e5f6ee; }
+html[data-theme="light"] .quest.done { opacity: 0.75; }
+html[data-theme="light"] canvas.foil { filter: none; }
+
+/* ---------------------------------------------------------------- high contrast */
+html[data-contrast="high"] { --line: #7d9488; --mu: #3a4a42; --line-focus: #005fcc; }
+html[data-contrast="high"][data-theme="dark"], html[data-contrast="high"]:not([data-theme]) { --mu: #c5d6cd; --line: #5d786b; --line-focus: #ffd24a; }
+html[data-contrast="high"] *:focus-visible { outline-width: 3px; }
+html[data-contrast="high"] .card, html[data-contrast="high"] .kpi, html[data-contrast="high"] .panel { border-width: 2px; }
+
+/* ---------------------------------------------------------------- text size (works in Chrome, Edge, Safari, Firefox 126+) */
+html[data-fs="lg"] body { zoom: 1.1; }
+html[data-fs="xl"] body { zoom: 1.22; }
+
+/* ---------------------------------------------------------------- skip link + live regions */
+.skip-link { position: fixed; left: 12px; top: -64px; z-index: 1000; background: var(--acc); color: #04150d; padding: 10px 16px; border-radius: 8px; font-weight: 700; text-decoration: none; transition: top 0.15s; }
+.skip-link:focus { top: 12px; }
+
+/* ---------------------------------------------------------------- top-bar theme button */
+.theme-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; }
+.theme-btn svg { width: 16px; height: 16px; flex: none; }
+@media (max-width: 480px) { .theme-btn .theme-label { display: none; } }
+
+/* ---------------------------------------------------------------- app footer (legal links) */
+.app-footer { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; justify-content: space-between; padding: 18px 24px 26px; border-top: 1px solid var(--line-subtle); color: var(--mu); font-size: 12.5px; }
+.app-footer nav { display: flex !important; flex-direction: row !important; flex-wrap: wrap; gap: 4px 16px; width: auto; }
+.app-footer nav a { display: inline; padding: 0; background: none; }
+.app-footer a { color: var(--mu); text-decoration: none; }
+.app-footer a:hover { color: var(--acc2); text-decoration: underline; }
+@media (max-width: 860px) { .app-footer { padding-bottom: 90px; } }
+
+/* ---------------------------------------------------------------- storage notice */
+.notice { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 760px; margin: 0 auto; z-index: 15; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--card); color: var(--tx); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--sh-xl); font-size: 13.5px; }
+.notice p { margin: 0; flex: 1 1 320px; color: var(--mu); }
+.notice a { color: var(--acc2); }
+@media (max-width: 860px) { .notice { bottom: 78px; } }
+
+/* ---------------------------------------------------------------- sign-in consent + legal links in the auth modal */
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--mu); line-height: 1.45; text-align: left; }
+.consent input { margin-top: 3px; flex: none; width: 18px; height: 18px; accent-color: var(--acc); }
+.consent a, .legal-links a { color: var(--acc2); }
+.legal-links { font-size: 12.5px; color: var(--mu); text-align: center; margin: 4px 0 0; }
+
+/* ---------------------------------------------------------------- settings: appearance card */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; padding: 7px 14px; }
+.seg button[aria-pressed="true"] { background: var(--acc); color: #04150d; font-weight: 700; }
+.opt-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--line-subtle); }
+.opt-row:last-child { border-bottom: 0; }
+.opt-row small { display: block; color: var(--mu); }
+
+/* ---------------------------------------------------------------- narrow-screen safety net */
+.stories { max-width: 100%; }
+.grid3 > *, .grid2 > *, .stack > *, .kpis > * { min-width: 0; }
+@media print { .app-footer, .notice, .skip-link, .theme-btn { display: none !important; } }
+
+/* ---------------------------------------------------------------- last-mile mobile fixes (375px) */
+.kpi { overflow: hidden; }
+.spark-wrap { min-width: 0; max-width: 100%; }
+input, select, textarea { max-width: 100%; }
+.row, .form, .opt-row { flex-wrap: wrap; }
+.form label { min-width: 0; }
