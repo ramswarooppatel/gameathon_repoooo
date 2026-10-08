@@ -8,6 +8,7 @@ import { scratch, confetti } from './fx.js';
 import { parseBank, matchBank } from './bank.js';
 import { appearanceCard } from './extras.js';
 import { icon } from './icons.js';
+import { invoiceSettingsCard } from './views4.js';
 
 const KIND = { sale: 'Sale', purchase: 'Purchase', expense: 'Expense', salary: 'Salary' };
 const card = (title, ...kids) => h('section', { class: 'card' }, h('h3', {}, title), ...kids);
@@ -938,9 +939,10 @@ function settings(S, A) {
       appearanceCard(h),
       card('Account & storage', h('p', {}, h('b', {}, S.repo.mode === 'cloud' ? 'Supabase cloud database' : 'Demo mode (this browser only)')), h('p', { class: 'mu' }, `${S.user.email} · role: ${S.repo.role}`),
         S.repo.mode === 'demo' && h('p', { class: 'al med' }, 'Demo mode does not sync. Sign in to store everything in your Supabase database.'), h('button', { onclick: A.signOut }, S.repo.mode === 'cloud' ? 'Sign out' : 'Exit demo')),
+      invoiceSettingsCard(S, A),
       S.can('write') && recurringCard(S, A),
       card('Sample data', h('p', { class: 'mu' }, 'Load a realistic set of invoices, bills and expenses (with an overdue invoice and a bad GSTIN) to explore the app.'), S.can('write') ? h('button', { onclick: A.demo }, 'Load sample data') : h('p', { class: 'mu' }, 'Your role is read-only.')),
-      card('Export', h('button', { onclick: () => download(`transactions-${today()}.csv`, toCsv(S.sum.rows)) }, 'Download all transactions (CSV)'))));
+      card('Export and backup', h('div', { class: 'acts wrap' }, h('button', { onclick: () => download(`transactions-${today()}.csv`, toCsv(S.sum.rows)) }, 'Transactions (CSV)'), h('button', { onclick: A.backup }, 'Full backup (JSON)')), h('p', { class: 'mu small' }, 'The backup has invoices, transactions, directory, filings and the audit trail. Keep a copy at least monthly.'))));
 }
 
 export const VIEWS = { dashboard, transactions, compliance, insights, rewards, audit, settings };

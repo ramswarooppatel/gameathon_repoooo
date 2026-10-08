@@ -1,10 +1,13 @@
 // Command palette: Ctrl/⌘+K to jump anywhere or run a common action. Keyboard-first, screen-reader friendly.
 import { theme } from './extras.js';
 import { iconSvg } from './icons.js';
+import { dialog } from './views4.js';
 
-const PAGES = [['today', 'Today', 'Daily routine'], ['dashboard', 'Dashboard', 'Overview and rewards'], ['transactions', 'Transactions', 'Invoices, bills, payroll'], ['parties', 'Customers & vendors', 'Directory'], ['approvals', 'Approvals', 'Spend waiting for an admin'], ['compliance', 'GST & Compliance', 'Returns and GST position'], ['reports', 'Reports', 'P&L, aging, GST by month'], ['planner', 'Cash planner', '60-day forecast, budgets'], ['insights', 'Insights', 'AI CFO and stress test'], ['learn', 'Learn', 'Money lessons'], ['rewards', 'Team rewards', 'Streaks and badges'], ['audit', 'Audit trail', 'Who did what and why'], ['team', 'Team & access', 'Members and roles'], ['settings', 'Settings', 'Company, appearance']];
+const PAGES = [['today', 'Today', 'Daily routine'], ['dashboard', 'Dashboard', 'Overview and rewards'], ['invoices', 'Invoices', 'Create GST invoices, e-way bills, received invoices'], ['transactions', 'Transactions', 'Sales, bills, payroll'], ['parties', 'Customers & vendors', 'Directory'], ['approvals', 'Approvals', 'Spend waiting for an admin'], ['compliance', 'GST & Compliance', 'Returns and GST position'], ['reports', 'Reports', 'P&L, aging, GST by month'], ['planner', 'Cash planner', '60-day forecast, budgets'], ['insights', 'Insights', 'AI CFO and stress test'], ['learn', 'Learn', 'Money lessons'], ['rewards', 'Team rewards', 'Streaks and badges'], ['audit', 'Audit trail', 'Who did what and why'], ['team', 'Team & access', 'Members and roles'], ['settings', 'Settings', 'Company, appearance']];
 const clickByText = (re) => setTimeout(() => [...document.querySelectorAll('button')].find((b) => re.test(b.textContent))?.click(), 400);
 const ACTIONS = [
+  { label: 'New invoice', hint: 'GST tax invoice or bill of supply', run: () => { location.hash = 'invoices'; clickByText(/new invoice/i); } },
+  { label: 'Keyboard shortcuts', hint: 'Press ?', run: () => showHelp() },
   { label: 'Add transaction', hint: 'Sale, bill, expense or payroll', run: () => { location.hash = 'transactions'; clickByText(/add transaction/i); } },
   { label: 'Import bank statement (CSV)', hint: 'Match payments automatically', run: () => { location.hash = 'transactions'; clickByText(/import bank/i); } },
   { label: 'Switch theme (light / dark)', hint: 'Appearance', run: () => theme.toggle() },
@@ -50,3 +53,23 @@ function mount() {
   b.innerHTML = iconSvg('search', 16) + '<span>Search</span><kbd>Ctrl K</kbd>'; b.addEventListener('click', openPalette); actions.prepend(b);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+
+// ---- single-key shortcuts (ignored while typing or when a dialog is open) ----
+const GO = { t: 'today', d: 'dashboard', i: 'invoices', x: 'transactions', p: 'parties', a: 'approvals', c: 'compliance', r: 'reports', f: 'planner', n: 'insights', l: 'learn', u: 'audit', s: 'settings' };
+const HELP = [['Ctrl K', 'Command palette'], ['?', 'This help'], ['i', 'New invoice'], ['n', 'New transaction'], ['/', 'Focus the search box'], ['t', 'Switch light / dark'], ['g then t / d / i / x', 'Go to Today / Dashboard / Invoices / Transactions'], ['g then p / a / c / r', 'Parties / Approvals / Compliance / Reports'], ['g then f / n / l / u / s', 'Planner / Insights / Learn / Audit / Settings'], ['Ctrl S', 'Invoice form: save draft'], ['Ctrl Enter', 'Invoice form: issue invoice'], ['Enter', 'Invoice form: next line'], ['Esc', 'Close dialogs']];
+function showHelp() {
+  const rows = HELP.map(([k, d]) => { const r = document.createElement('div'); r.className = 'up'; r.innerHTML = '<kbd></kbd><span></span>'; r.firstChild.textContent = k; r.lastChild.textContent = d; return r; });
+  dialog('Keyboard shortcuts', ...rows);
+}
+let pend = 0;
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || document.getElementById('app')?.hidden || e.target.closest?.('input,textarea,select,[contenteditable]') || document.querySelector('.overlay:not([hidden])')) return;
+  const k = e.key;
+  if (pend && Date.now() - pend < 1200) { pend = 0; const v = GO[k.toLowerCase()]; if (v) { e.preventDefault(); location.hash = v; } return; }
+  if (k === 'g') pend = Date.now();
+  else if (k === '?') { e.preventDefault(); showHelp(); }
+  else if (k === '/') { const s = document.querySelector('#view input[placeholder^="Search"]'); if (s) { e.preventDefault(); s.focus(); } }
+  else if (k === 'i') ACTIONS[0].run();
+  else if (k === 'n') ACTIONS[2].run();
+  else if (k === 't') theme.toggle();
+});

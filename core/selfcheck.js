@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { split, validGstin, makeGstin, netPayable } from '../tax/gst.js';
+import { calcInvoice, inWords, nextNumber, fy, supplyFor, parseShared, exportInvoice } from '../tax/invoice.js';
+import * as EW from '../tax/eway.js';
 import { createLedger } from '../ledger/blackbox.js';
 import { createGame, nextDay, decide } from './engine.js';
 
@@ -77,6 +79,28 @@ const CP = collectionPlan([3, 20, 45, 90].map((n) => mk({ kind: 'sale', party: '
 assert.deepEqual(CP.map((c) => c.stage.key).sort(), ['call', 'escalate', 'firm', 'friendly']);
 const BS = budgetStatus([mk({ kind: 'expense', party: 'R', taxable: 25000, category: 'Rent', date: '2026-10-01' })], { Rent: 20000, Travel: 5000 }, '2026-10', T);
 assert.equal(BS.find((b) => b.category === 'Rent').status, 'over'); assert.equal(BS.find((b) => b.category === 'Travel').actual, 0);
+
+// Invoice generator + e-way bill
+const INV = calcInvoice([{ desc: 'Phone', hsn: '8517', qty: 2, rate: 1000, disc: 10, gst: 18 }, { desc: 'Install', hsn: '9983', qty: 1, rate: 500, gst: 5 }, { desc: 'Cable', hsn: '8544', qty: 1, rate: 200, gst: 18 }], { supply: 'intra' });
+assert.equal(INV.taxable, 2500); assert.deepEqual(INV.byRate.map((r) => [r.gst, r.taxable, r.total]), [[18, 2000, 360], [5, 500, 25]]);
+assert.equal(INV.cgst, 192.5); assert.equal(INV.grand, 2885); assert.equal(INV.payable, 2885); assert.equal(INV.hsn.length, 3);
+assert.deepEqual((({ grand, payable, roundOff }) => [grand, payable, roundOff])(calcInvoice([{ desc: 'x', hsn: '1', qty: 1, rate: 100.4, gst: 18 }], { supply: 'inter' })), [118.47, 118, -0.47]);
+assert.equal(calcInvoice([{ desc: 'x', hsn: '1', qty: 3, rate: 100, gst: 18 }], { bos: true }).tax, 0);
+assert.equal(inWords(125000.5), 'Rupees One Lakh Twenty Five Thousand and Fifty Paise Only');
+assert.equal(inWords(1234567), 'Rupees Twelve Lakh Thirty Four Thousand Five Hundred Sixty Seven Only'); assert.equal(inWords(0), 'Rupees Zero Only');
+assert.equal(fy('2026-03-31'), '25-26'); assert.equal(fy('2026-04-01'), '26-27');
+assert.equal(nextNumber(['INV/26-27/0009', 'INV/25-26/0120'], '2026-10-09'), 'INV/26-27/0010'); assert.equal(nextNumber([], '2027-01-05', 'AC ME!'), 'ACME/26-27/0001');
+assert.ok(nextNumber([], '2026-10-09', 'LONGPREFIXX').length <= 16);
+assert.equal(supplyFor('27AAPFU0939F1ZV', '29'), 'inter'); assert.equal(supplyFor('27AAPFU0939F1ZV', '27'), 'intra');
+assert.equal(EW.validityDays(201), 2); assert.equal(EW.validityDays(0), 1); assert.equal(EW.validityDays(250, true), 3);
+assert.ok(EW.validVehicle('MH 12 AB 1234') && !EW.validVehicle('XX')); assert.equal(EW.required({ items: [{ hsn: '8517' }], totals: { grand: 60000 } }).need, true);
+assert.equal(EW.required({ items: [{ hsn: '9983' }], totals: { grand: 60000 } }).need, false); assert.equal(EW.required({ items: [{ hsn: '8517' }], totals: { grand: 50000 } }).need, false);
+assert.equal(EW.check({ mode: 'road', fromPincode: '400001', toPincode: '560001', distance: 980 }).length, 1);
+const NIC = EW.nicJson({ number: 'INV/26-27/0001', date: '2026-10-09', supply: 'inter', pos_state: '29', seller: { gstin: '27AAPFU0939F1ZV', name: 'S' }, buyer: { name: 'B', gstin: '29AAPFU0939F1ZW' }, totals: { ...INV, grand: 2885 } }, { fromPincode: '400001', toPincode: '560001', distance: 980, mode: 'road', vehicle: 'mh12ab1234' }).billLists[0];
+assert.equal(NIC.docDate, '09/10/2026'); assert.equal(NIC.toStateCode, 29); assert.equal(NIC.vehicleNo, 'MH12AB1234'); assert.equal(NIC.itemList[0].igstRate, 18);
+const FILE = exportInvoice({ id: 'abc', number: 'INV/26-27/0001', doc_type: 'tax', date: '2026-10-09', due_date: null, seller: { name: 'S', gstin: '27AAPFU0939F1ZV' }, buyer: { name: 'B' }, supply: 'intra', pos_state: '27', reverse_charge: false, items: [{ desc: 'Phone', hsn: '8517', qty: 2, rate: 1000, disc: 10, gst: 18 }], totals: { grand: 99999 }, notes: null });
+const PS = parseShared(FILE); assert.equal(PS.doc.totals.grand, 2124); assert.ok(PS.doc.mismatch > 0);   // totals are recomputed, tampering is flagged
+assert.ok(parseShared('nope').error && parseShared('{"format":"x"}').error && parseShared(FILE.replace('"gst": 18', '"gst": 7')).error);
 
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {

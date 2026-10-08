@@ -13,8 +13,9 @@ Rule: every schema change ships as a new file in `supabase/migrations/` and is l
 | 5 | `20261008040000_recurring.sql` | `recurring` templates (rent, payroll, subscriptions) | ⬜ pending |
 | 6 | `20261008050000_oxro_org_workspace.sql` | Company workspace: `orgs`, `org_members` (admin/finance/viewer), invite codes + email-domain lock, `parties`, entry approvals (server-enforced trigger), org-wide RLS, team leaderboard | ⬜ pending |
 | 7 | `20261008060000_workflow.sql` | `orgs.budgets`, `checklist_ticks` (weekly + month-end checklist state) | ⬜ pending |
+| 8 | `20261009000000_invoicing.sql` | `invoices` (immutable once issued), `items`, `orgs.invoice_settings`, unique GSTIN per workspace, `parties.address/pincode`, `entries.invoice_id`, `is_buyer()`, `respond_invoice()` | ⬜ pending |
 
-Apply all seven: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
+Apply all eight: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
 Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-up), add redirect URLs, put `SUPABASE_ANON_KEY` in `.env`, run `npm run sync-env`.
 
 ## Finance manager (`index.html`, `app/`)
@@ -60,6 +61,18 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | **Performance**: CSS bundled + minified (`app/bundle.min.css`, 14 KB gzip), logo 414 KB to 9 KB, landing screenshots JPG to WebP (880 to 220 KB), stale-while-revalidate service worker, preconnect | ✅ |
 | Practice Lab (the 90-day simulation, `lab.html`) | ✅ |
 | Self-checks: `npm run check` (GST, ledger, workspace math, sim) | ✅ |
+
+## Invoicing (page `#invoices`, `app/views4.js`, `tax/invoice.js`, `tax/eway.js`)
+| Area | Status |
+|------|--------|
+| Multi-line GST tax invoice and bill of supply: HSN/SAC, qty, discount, per-line GST rate, CGST/SGST vs IGST by place of supply, HSN summary, round-off, amount in words | ✅ tested (`core/selfcheck.js`, `scripts/invoice_test.py`) |
+| FY-aware numbering (`INV/26-27/0001`, 16-char rule), drafts, issue locks the invoice, admin-only cancel | ✅ |
+| Issuing creates the sale entries (one per GST rate), so GST, reports, planner and aging pick them up | ✅ |
+| Print / PDF layout (A4), seller bank and UPI, notes and terms | ✅ |
+| E-way bill: requirement check, validity, validation, NIC bulk-upload JSON, save the bill number | ✅ (the bill itself is generated on the NIC portal) |
+| Received invoices: import a file, or inbox of invoices sent to your GSTIN; accept creates purchase entries with ITC, reject notifies the sender | ✅ demo; cloud path ⬜ untested until migration 8 is applied |
+| Item catalog, full JSON backup, shortcuts (`?`, `i`, `n`, `/`, `g` + letter, Ctrl+S, Ctrl+Enter) | ✅ |
+| Limits | GSTIN ownership is not verified, so a buyer inbox trusts the GSTIN a workspace claims. No credit notes, e-invoice (IRN) or TCS/TDS yet. |
 
 ## Seed data
 `supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).

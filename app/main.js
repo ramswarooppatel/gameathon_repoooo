@@ -8,14 +8,15 @@ import { today, h, toast, $, inr } from './util.js';
 import { VIEWS, reminderText } from './views.js';
 import * as V2 from './views2.js';
 import * as V3 from './views3.js';
-import { invoiceHtml } from './invoice.js';
+import { invoiceHtml, taxInvoiceHtml } from './invoice.js';
+import * as V4 from './views4.js';
 import { countUp, muted, setMuted } from './fx.js';
 import { iconSvg } from './icons.js';
 import { dueMonths } from './recurring.js';
 
-const S = { ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
-const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn };
-const TITLES = { today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
+const S = { invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
+const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn, invoices: V4.invoices };
+const TITLES = { invoices: 'Invoices', today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
 let view = location.hash.slice(1) || 'today', booted = false, session = null;
 
 // Role permissions. viewer: read · finance: write · admin: everything.
@@ -49,7 +50,7 @@ function compute() {
 
 async function load() {
   const r = S.repo;
-  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks')]);
+  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks, S.invoices, S.items, S.inbox] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks'), r.list('invoices', { col: 'date', asc: false }), r.list('items', { col: 'name', asc: true }), r.inbox().catch(() => [])]);
   S.profile = await r.getProfile();
   S.members = await r.members().catch(() => []);
   const log = await r.list('activity_log', { col: 'n', asc: true });
@@ -142,8 +143,112 @@ const A = {
     await audit('reminder.send', id, { party: r.party, via: party?.phone ? 'whatsapp' : party?.email ? 'email' : 'copy' }, `Prepared a staged payment reminder for ${r.party} (invoice ${r.number || 'n/a'}, due ${r.due_date}).`);
     await award('alert_resolved', id + ':remind', XP.alert_resolved, 'Reminder prepared'); await refresh();
   },
+  openInvoice(id) {
+    const inv = S.invoices.find((x) => x.id === id), w = window.open('', '_blank');
+    if (!w) return toast('Pop-up blocked', 'Allow pop-ups to print invoices.', 'bad');
+    w.document.write(taxInvoiceHtml(V4.asDoc(S, inv), S.profile)); w.document.close();
+    audit('invoice.view', id, { number: inv.number }, `Opened invoice ${inv.number} for printing.`);
+  },
+  async saveInvoice(d, status) {
+    if (!need('write')) return null;
+    if (S.invoices.some((i) => i.number === d.number && i.id !== d.id)) return toast('Number already used', `Invoice ${d.number} exists. Change the number.`, 'bad'), null;
+    const patch = { number: d.number, doc_type: d.doc_type, status, date: d.date, due_date: d.due_date, seller: d.seller, buyer: d.buyer, buyer_gstin: d.buyer_gstin, supply: d.supply, pos_state: d.pos_state, reverse_charge: d.reverse_charge, items: d.items, totals: d.totals, notes: d.notes };
+    let row;
+    try {
+      if (d.id) { await S.repo.update('invoices', d.id, patch); row = Object.assign(S.invoices.find((i) => i.id === d.id), patch); }
+      else { row = await S.repo.insert('invoices', patch); if (!row) return toast('Number already used', `Invoice ${d.number} exists.`, 'bad'), null; S.invoices.unshift(row); }
+    } catch (x) { toast('Could not save invoice', x.message, 'bad'); return null; }
+    if (status === 'issued') {
+      for (const g of d.totals.byRate) if (g.taxable > 0) {
+        const e = await S.repo.insert('entries', { kind: 'sale', number: d.number, party: d.buyer.name, gstin: d.buyer_gstin, date: d.date, due_date: d.due_date, taxable: g.taxable, gst_rate: g.gst, supply: d.supply, category: 'Sales', invoice_id: row.id });
+        if (e) S.entries.unshift(e);
+      }
+      if (!S.parties.some((p) => p.kind === 'customer' && p.name === d.buyer.name)) {
+        const p = await S.repo.insert('parties', { kind: 'customer', name: d.buyer.name, gstin: d.buyer_gstin, email: d.buyer.email || null, phone: d.buyer.phone || null, address: d.buyer.address || null, pincode: d.buyer.pincode || null });
+        if (p) { S.parties.push(p); S.parties.sort((a, b) => a.name.localeCompare(b.name)); }
+      }
+      await audit('invoice.issue', row.id, { number: d.number, party: d.buyer.name, total: d.totals.payable }, `Issued ${d.doc_type === 'bos' ? 'bill of supply' : 'tax invoice'} ${d.number} to ${d.buyer.name} for ${inr(d.totals.payable)} (tax ${inr(d.totals.tax)}).`);
+      compute(); await award('invoice_issued', row.id, 15, 'Invoice issued'); toast('Invoice issued', `${d.number} · ${inr(d.totals.payable)}`);
+    } else { await audit('invoice.draft', row.id, { number: d.number }, `Saved draft invoice ${d.number} for ${d.buyer.name}.`); toast('Draft saved', d.number); }
+    await refresh(); return true;
+  },
+  async deleteDraft(id) {
+    if (!need('write')) return;
+    const inv = S.invoices.find((i) => i.id === id); if (inv?.status !== 'draft') return;
+    await S.repo.remove('invoices', id); S.invoices = S.invoices.filter((i) => i.id !== id);
+    await audit('invoice.draft.delete', id, { number: inv.number }, `Deleted draft invoice ${inv.number}.`); await refresh();
+  },
+  async cancelInvoice(id) {
+    if (!need('admin')) return;
+    const inv = S.invoices.find((i) => i.id === id); if (inv?.status !== 'issued') return;
+    await S.repo.update('invoices', id, { status: 'cancelled' }); inv.status = 'cancelled';
+    for (const e of S.entries.filter((x) => x.invoice_id === id)) await S.repo.remove('entries', e.id);
+    S.entries = S.entries.filter((x) => x.invoice_id !== id);
+    await audit('invoice.cancel', id, { number: inv.number }, `Cancelled invoice ${inv.number} to ${inv.buyer.name}; its sale entries were removed.`);
+    toast('Invoice cancelled', inv.number); await refresh();
+  },
+  async markInvoicePaid(id) {
+    if (!need('write')) return;
+    const inv = S.invoices.find((i) => i.id === id);
+    for (const e of S.entries.filter((x) => x.invoice_id === id && !x.paid_date)) await A.markPaid(e.id, today(), true);
+    await audit('invoice.paid', id, { number: inv.number }, `Marked invoice ${inv.number} as paid.`); await refresh();
+  },
+  async shareInvoice(id) {
+    if (!need('write')) return;
+    const inv = S.invoices.find((i) => i.id === id);
+    if (S.repo.mode !== 'cloud') return toast('Demo mode', 'Download the invoice file and send it instead.', 'bad');
+    try { await S.repo.update('invoices', id, { shared: true }); } catch (x) { return toast('Could not send', x.message, 'bad'); }
+    Object.assign(inv, { shared: true, buyer_status: 'pending' });
+    await audit('invoice.share', id, { number: inv.number, gstin: inv.buyer_gstin }, `Sent invoice ${inv.number} to the workspace registered under GSTIN ${inv.buyer_gstin}.`);
+    toast('Sent', 'It now appears in the Received tab of the buyer.'); await refresh();
+  },
+  async saveEway(id, ew) {
+    if (!need('write')) return;
+    const inv = S.invoices.find((i) => i.id === id); await S.repo.update('invoices', id, { eway: ew }); inv.eway = ew;
+    await audit('eway.save', id, { number: inv.number, ewb: ew.ewbNo || null }, `Saved e-way bill details for invoice ${inv.number}${ew.ewbNo ? ` (bill ${ew.ewbNo})` : ''}.`);
+    toast('E-way details saved', inv.number); await refresh();
+  },
+  async acceptInvoice(doc, shared) {
+    if (!need('write')) return;
+    if (S.entries.some((e) => e.invoice_id === doc.id)) return toast('Already recorded', `Invoice ${doc.number} is in your books.`);
+    for (const g of doc.totals.byRate) if (g.taxable > 0) {
+      const e = await S.repo.insert('entries', { kind: 'purchase', number: doc.number, party: doc.seller.name, gstin: doc.seller.gstin || null, date: doc.date, due_date: doc.due_date, taxable: g.taxable, gst_rate: g.gst, supply: doc.supply, category: 'Purchases', note: doc.reverse_charge ? 'Reverse charge' : null, invoice_id: doc.id });
+      if (e) S.entries.unshift(e);
+    }
+    if (!S.parties.some((p) => p.kind === 'vendor' && p.name === doc.seller.name)) {
+      const p = await S.repo.insert('parties', { kind: 'vendor', name: doc.seller.name, gstin: doc.seller.gstin || null, email: doc.seller.email || null, phone: doc.seller.phone || null, address: doc.seller.address || null, pincode: doc.seller.pincode || null });
+      if (p) { S.parties.push(p); S.parties.sort((a, b) => a.name.localeCompare(b.name)); }
+    }
+    if (shared) { try { await S.repo.respond(shared.id, true); shared.buyer_status = 'accepted'; } catch (x) { toast('Recorded, but the sender was not notified', x.message, 'bad'); } }
+    await audit('invoice.accept', doc.id, { number: doc.number, from: doc.seller.name, total: doc.totals.payable }, `Accepted invoice ${doc.number} from ${doc.seller.name} (${inr(doc.totals.payable)}) and recorded it as a purchase.`);
+    compute(); await award('invoice_accepted', doc.id, 10, 'Supplier invoice recorded'); toast('Purchase recorded', `${doc.seller.name} · ${inr(doc.totals.payable)}`); await refresh();
+  },
+  async rejectInvoice(id, note) {
+    if (!need('write')) return;
+    const row = S.inbox.find((i) => i.id === id);
+    try { await S.repo.respond(id, false, note); } catch (x) { return toast('Could not reject', x.message, 'bad'); }
+    row.buyer_status = 'rejected';
+    await audit('invoice.reject', id, { number: row.number, from: row.seller.name }, `Rejected invoice ${row.number} from ${row.seller.name}${note ? `: ${note}` : ''}.`); await refresh();
+  },
+  async saveItem(it) {
+    if (!need('write')) return;
+    const row = await S.repo.insert('items', it); if (!row) return toast('Already exists', it.name, 'bad');
+    S.items.push(row); S.items.sort((a, b) => a.name.localeCompare(b.name)); await audit('item.add', row.id, { name: it.name }, `Added "${it.name}" to the item catalog.`); await refresh();
+  },
+  async removeItem(id) {
+    if (!need('write')) return;
+    const it = S.items.find((x) => x.id === id); await S.repo.remove('items', id); S.items = S.items.filter((x) => x.id !== id);
+    await audit('item.delete', id, { name: it.name }, `Removed "${it.name}" from the item catalog.`); await refresh();
+  },
+  backup() {
+    const data = { exported_at: new Date().toISOString(), company: S.profile.name, profile: S.profile, entries: S.entries, invoices: S.invoices, items: S.items, parties: S.parties, filings: S.filings, recurring: S.recurring, audit: S.orgLog };
+    h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })), download: `backup-${today()}.json` }).click();
+    audit('backup.export', null, { entries: S.entries.length, invoices: S.invoices.length }, 'Downloaded a full JSON backup.');
+  },
   printInvoice(id) {
-    const r = S.allRows.find((x) => x.id === id), w = window.open('', '_blank');
+    const r = S.allRows.find((x) => x.id === id);
+    if (r?.invoice_id && S.invoices.some((i) => i.id === r.invoice_id)) return A.openInvoice(r.invoice_id);
+    const w = window.open('', '_blank');
     if (!w) return toast('Pop-up blocked', 'Allow pop-ups to print invoices.', 'bad');
     w.document.write(invoiceHtml(r, S.profile, S.parties.find((p) => p.name === r.party))); w.document.close();
     audit('invoice.print', id, { party: r.party }, `Opened invoice ${r.number || ''} for ${r.party} for printing.`);
@@ -201,7 +306,7 @@ const A = {
     await award('alert_resolved', `file:${type}:${period}`, XP.alert_resolved, 'Compliance alert resolved'); await refresh();
   },
   async saveProfile(p) {
-    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets'];
+    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings'];
     if (!S.can('admin')) { for (const k of orgKeys) delete p[k]; }
     else if (Object.keys(p).some((k) => orgKeys.includes(k)) === false) { /* personal only */ }
     await S.repo.saveProfile({ ...p, health: S.sum.health }); S.profile = { ...S.profile, ...p };

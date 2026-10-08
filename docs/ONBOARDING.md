@@ -1,0 +1,153 @@
+# Mind Your Funds — project guide for newcomers
+
+Product name: **Mind Your Funds** (internal brand: **Oxro Labs · Finance Desk**).
+Built by Ram, Sumit and Masoom for **Game-a-thon 2026, Track 3 FinTech, PS 3.1 "FinCrew"**.
+
+## 1. What it is, in one paragraph
+
+A real, usable finance manager for small businesses in India, wrapped in light gamification (XP, levels, streaks, quests, badges) so people actually do their finance routine. It is **not a game**. Think "Slice / FamPay polish, but professional". It handles invoices, bills, payroll, GST, approvals, alerts and an audit trail, and has an AI CFO. A separate **Practice Lab** lets people rehearse running a business in a 90-day simulation with no real money at stake.
+
+## 2. The problem and the idea
+
+Small businesses miss GST deadlines, lose track of who owes them money, run out of cash without warning, and have no finance team. Existing tools are either complex accounting software or toys. Our answer:
+
+- **Guided workflow**: the app tells you what to do today, this week, and at month end.
+- **Safety by design**: approvals for risky spend, roles, a tamper-evident audit log.
+- **Teaching while doing**: short lessons and quizzes, "what-if" cash forecasts.
+- **Gamification as habit-building**, not decoration.
+
+## 3. Tech stack (deliberately simple)
+
+| Layer | Choice |
+|---|---|
+| Frontend | Vanilla JS ES modules, no framework, no bundler. Canvas/SVG for charts |
+| Styling | Plain CSS, token based, light and dark. Six CSS files are concatenated into `app/bundle.min.css` |
+| Database and auth | **Supabase** (Postgres, Row Level Security, Auth, Realtime, RPCs) |
+| AI | **Groq** via a Netlify function proxy (`netlify/functions/groq.js`) with model fallback |
+| Offline | PWA service worker (`sw.js`, stale-while-revalidate) |
+| Hosting | Static site plus one serverless function |
+
+The only build step is CSS: after editing any `app/*.css`, run `npm run build:css`.
+
+## 4. Two modes: Demo and Cloud
+
+`app/repo.js` exposes one data interface with two adapters:
+
+- **Demo repo**: everything lives in the browser. Works with zero setup. Used for trying the app and for tests.
+- **Cloud repo**: talks to Supabase. Needs sign-in, an organisation, and the migrations applied.
+
+The views never know which one they are using. That is why the whole UI can be smoke-tested without a backend.
+
+## 5. Roles and access
+
+Three roles per organisation: **admin**, **finance**, **viewer**. Enforced twice: in the database (RLS policies, a `SECURITY DEFINER` function `org_role()`, and a trigger `entries_approval_guard`) and in the UI (`S.can()` hides what you can't do). RPCs: `create_org`, `join_org`, `set_member_role`, `remove_member`, `get_leaderboard`.
+
+## 6. What the app contains (pages)
+
+| Page | Purpose |
+|---|---|
+| **Today** | Guided daily 5 steps, weekly list, month-end close, tips, GST reserve, a lesson card |
+| **Dashboard** | KPIs, cash, goal ring, streak, quests |
+| **Transactions** | Invoices, bills, expenses, payroll, bank CSV import and auto-matching |
+| **Customers & vendors** | Directory with GSTIN checks |
+| **Approvals** | Spend waiting for an admin |
+| **GST & Compliance** | CGST/SGST/IGST, ITC netting, GSTR-1 (due 11th) and GSTR-3B (due 20th) |
+| **Reports** | P&L, ageing, GST by month, print/export |
+| **Cash planner** | 60-day forecast with scenarios, what-if slider, budgets |
+| **Insights** | AI CFO (Groq) and stress test |
+| **Learn** | 8 lessons with 3-question quizzes (pass 2/3 for 25 XP) |
+| **Team rewards** | Streaks, badges, leaderboard |
+| **Audit trail** | Who did what and why |
+| **Team & access** | Members and roles |
+| **Settings** | Company, appearance, accessibility, recurring items |
+| **Practice Lab** (`lab.html`) | 90-day business simulation, separate from real data |
+
+Also: command palette (Ctrl/⌘+K), light/dark theme, text-size and contrast options, landing page (`welcome.html`) and legal pages (`legal/terms|privacy|disclaimer|accessibility.html`).
+
+## 7. The ideas that make it different
+
+1. **Tamper-evident audit log**: every action is hashed (SHA-256) and chained to the previous one (`ledger/blackbox.js`). Edit history and the chain breaks visibly. Per-user chains; admins see the whole org log.
+2. **India GST engine** (`tax/*`): GSTIN checksum validation, intra vs inter-state tax split, input tax credit netting, filing deadlines. These are planning estimates; the UI says to verify with a CA.
+3. **Guided workflow engine** (`workspace/planner.js`): forecast, pay-priority ordering, customer collection ladder (reminder stages), budgets, month-close checklist, contextual tips.
+4. **AI CFO sees aggregate numbers only**, never raw party names or invoice detail.
+5. **Gamification tied to real behaviour**: XP and quests reward the routine (ticking checklist, collecting dues, filing on time).
+
+## 8. Repository map
+
+```
+index.html            app shell (nav, top bar, mobile bar)
+welcome.html, legal/  landing and legal pages (generated by scripts/gen_site.py)
+lab.html, style.css   Practice Lab (old style, still to be restyled)
+app/
+  main.js             boot, routing, auth screen, actions
+  views.js, views2.js, views3.js   page renderers (views3 = Today, Planner, Learn)
+  repo.js             demo/cloud data adapters
+  util.js             h() DOM helper, toasts, confetti
+  gamify.js, lessons.js            XP, levels, quests, badges, lessons
+  icons.js            outline SVG icon set (no emoji anywhere)
+  extras.js           theme, accessibility, skip link
+  palette.js          command palette
+  *.css, bundle.min.css            styles and the built bundle
+workspace/planner.js  forecast and workflow logic
+tax/                  GST rules
+ledger/blackbox.js    hash-chained audit log
+core/selfcheck.js     unit-style assertions for the logic
+netlify/functions/groq.js        AI proxy
+supabase/migrations/  schema history (see below); supabase/seed.sql sample data
+scripts/              build_css, gen_site, ui_smoke, flow_test, shots_theme
+deck/                 Game-a-thon PowerPoint generator
+docs/SETUP.md, PROGRESS.md, NEXT_STEPS.md, TODO.md, prompt*.md, GOD_PROMPT.md
+```
+
+## 9. Database and migrations
+
+Rule: **every schema change gets a migration, and PROGRESS.md records what is done.** Migrations live in `supabase/migrations/` (init, workspace, finance_manager, goals_and_realtime, recurring, oxro_org_workspace, workflow). `supabase/seed.sql` holds generated sample company data.
+
+**Current state: none of the migrations have been applied to the real Supabase project yet** (project ref `qljazetkcycptbcpmsdl`). The owner must run:
+
+```bash
+npx supabase login
+npx supabase link --project-ref qljazetkcycptbcpmsdl
+npx supabase db push
+```
+
+then enable email auth, put the anon key in `.env`, and run `npm run sync-env`.
+
+## 10. Running it
+
+1. Serve the folder statically (or `netlify dev` to include the AI function). Open `index.html`; Demo mode works immediately.
+2. For cloud mode and AI: copy `.env` values (Supabase URL and anon key, `GROQ_API_KEY`, optional `GROQ_MODEL`), run `npm run sync-env`.
+3. Details in `docs/SETUP.md`.
+
+## 11. Testing
+
+| Command | What it proves |
+|---|---|
+| `npm run check` / `core/selfcheck.js` | Business logic (GST, CSV import, matching, hash chain) |
+| `python scripts/ui_smoke.py` | Every page × 3 roles × light/dark × 375/768/1440 px, no overflow or errors, plus static pages |
+| `python scripts/flow_test.py` | End-to-end guided workflow |
+
+These use Playwright with Edge. They run entirely in Demo mode, so **cloud paths (auth, RLS, realtime, approvals trigger) are untested** until Supabase is connected.
+
+## 12. Known limitations (be honest about these)
+
+- XP is awarded client-side, so it can be cheated. Server-side XP is on the roadmap.
+- Reminders are copy/WhatsApp links only; nothing is sent automatically.
+- Legal pages contain placeholders (grievance officer, address, data region, retention) and need legal review.
+- Groq needs a model enabled for the project; the proxy falls back through several models.
+- Practice Lab still uses the older visual style.
+- First load on the sign-in screen is ~1.6 s, mostly the Supabase library from a CDN.
+
+## 13. Who does what now
+
+- **Ram**: architecture, backend, workflow engine, Supabase, deck.
+- **Sumit**: UI polish. Works on branch `sumit/ui-phase-3`; must pull `main` first. His task list is `prompt-sumit-phase3.md` (nav accuracy, PWA extras, auth and empty/loading states, Practice Lab restyle, screenshots).
+- **Masoom**: see TODO.md for the split.
+
+## 14. Roadmap
+
+Server-side XP, real reminder sending, bank feeds, e-invoicing, TDS/PF, more lessons. Full list in `NEXT_STEPS.md`; completion status in `PROGRESS.md`.
+
+## 15. Read these first
+
+`README`/`docs/SETUP.md` → `PROGRESS.md` → `NEXT_STEPS.md` → `app/main.js` → `app/repo.js` → `workspace/planner.js`.

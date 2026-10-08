@@ -1,9 +1,9 @@
 // Data layer. Cloud = Supabase (company workspace, RLS by org role). Demo = this browser only.
 import * as db from '../db/supabase.js';
 
-const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'] };
-const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks']);
-const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets'];
+const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'], items: ['name'], invoices: ['number'] };
+const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks', 'invoices', 'items']);
+const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings'];
 const KEY = 'myf-demo-data';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
@@ -34,6 +34,8 @@ function demoRepo() {
     async setRole(_u, role) { const d = load(); d.role = role; save(d); },
     async removeMember() {},
     async leaderboard() { return []; },
+    async inbox() { return []; },                                   // invoices other orgs shared with us (cloud only)
+    async respond() {},
     setDemoRole(role) { const d = load(); d.role = role; save(d); },
     reset() { localStorage.removeItem(KEY); },
   };
@@ -69,6 +71,8 @@ function cloudRepo(sb, user, m) {
     async setRole(userId, role) { ok(await sb.rpc('set_member_role', { p_org: orgId, p_user: userId, p_role: role })); },
     async removeMember(userId) { ok(await sb.rpc('remove_member', { p_org: orgId, p_user: userId })); },
     async leaderboard() { return ok(await sb.rpc('get_leaderboard')) || []; },
+    async inbox() { return ok(await sb.from('invoices').select('*').eq('shared', true).neq('org_id', orgId).order('date', { ascending: false })); },
+    async respond(id, accept, note) { ok(await sb.rpc('respond_invoice', { p_id: id, p_accept: accept, p_note: note || null })); },
   };
   return self;
 }

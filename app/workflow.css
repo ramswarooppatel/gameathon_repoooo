@@ -66,3 +66,21 @@ button.sm { padding: 3px 10px; font-size: 12px; }
 .pal-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: var(--r-md); cursor: pointer; }
 .pal-item small { color: var(--mu); } .pal-item[aria-selected="true"] { background: var(--acc-glow); outline: 1px solid var(--acc); }
 .pal-empty { padding: 18px; text-align: center; color: var(--mu); } .pal-foot { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--mu); }
+
+/* ---------------------------------------------------------------- invoicing */
+.inv-bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; } .inv-bar .sp, .sp { flex: 1 1 auto; }
+.inv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); align-items: start; } @media (max-width: 900px) { .inv-grid { grid-template-columns: minmax(0, 1fr); } }
+.inv-lines { display: block; margin-bottom: 12px; overflow-x: auto; } .inv-row { margin-bottom: 8px; } .inv-form .card, .inv-grid > * { min-width: 0; }
+.inv-row { display: grid; grid-template-columns: minmax(180px, 3fr) minmax(80px, 1fr) minmax(64px, 0.7fr) 84px minmax(90px, 1fr) minmax(64px, 0.7fr) 84px 36px; gap: 8px; align-items: center; min-width: 760px; }
+.inv-row input, .inv-row select { width: 100%; min-width: 0; } .inv-head { font-size: 12px; color: var(--mu); font-weight: 600; }
+.inv-totals h3 { margin-top: 0; } .inv-grand { font-size: 20px; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 6px; } .inv-form textarea { width: 100%; }
+.wide-modal { max-width: 680px; width: min(680px, 94vw); max-height: 90vh; overflow: auto; text-align: left; justify-items: stretch; } .wide-modal textarea { width: 100%; }
+.acts.wrap { flex-wrap: wrap; gap: 8px; } .btn { display: inline-block; padding: 7px 14px; border: 1px solid var(--line); border-radius: 99px; text-decoration: none; color: var(--tx); }
+.flip svg { transform: scaleX(-1); } button.ghost { background: transparent; border-color: transparent; }
+.up kbd { font: 600 12px ui-monospace, Consolas, monospace; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; background: var(--card-subtle); }
+.inv-form .form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .inv-form .form > * { min-width: 0; } .inv-form .form input:not([type=checkbox]), .inv-form .form select { width: 100%; min-width: 0; }
+@media (max-width: 520px) { .inv-form .form { grid-template-columns: minmax(0, 1fr); } .inv-bar { gap: 8px; } }
+.wide-modal .form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wide-modal .form > * { min-width: 0; } .wide-modal .form input, .wide-modal .form select { width: 100%; min-width: 0; }
+@media (max-width: 520px) { .wide-modal .form { grid-template-columns: minmax(0, 1fr); } }
+.form.inv { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form.inv > * { min-width: 0; } .form.inv input, .form.inv select, .form.inv textarea { width: 100%; min-width: 0; }
+@media (max-width: 520px) { .form.inv { grid-template-columns: minmax(0, 1fr); } }
