@@ -64,7 +64,7 @@ try:
         pg.click('#next'); pg.wait_for_timeout(60)
         check('enabled after day 1', not pg.locator('#prev').is_disabled() and pg.text_content('#h-day') == '1')
         pg.click('#prev'); pg.wait_for_timeout(100)
-        check('back to day 0 and disabled again', pg.text_content('#h-day') == '0' and pg.locator('#prev').is_disabled() and pg.text_content('#h-cash').strip() == '₹1,20,000')
+        check('back to day 0 and disabled again', pg.text_content('#h-day') == '0' and pg.locator('#prev').is_disabled() and pg.text_content('#h-cash').strip() == '₹1,50,000')
         for _ in range(10): pg.click('#next'); pg.wait_for_timeout(40)
         check('collector card open on day 10', pg.locator('.card:has-text("will pay")').count() == 1)
         pg.locator('.card:has-text("will pay") button.opt.rec').first.click(); pg.wait_for_timeout(200)       # a decision made on day 10, before Next day

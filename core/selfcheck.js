@@ -132,6 +132,13 @@ for (const [cash, first, tight] of [[200000, 'Pay on due date', false], [1000, '
   assert.equal(bc.options[0].label, first); assert.equal(bc.facts.tight, tight); assert.equal(bc.options[bc.defaultOption].label, 'Pay on due date');
 }
 
+// Practice Lab must be playable for the full 90 days whatever the Captain does (answer nothing, always pick the worst option, follow the crew, or no crew at all).
+for (const seed of [1, 7, 42, 99, 123]) for (const mode of ['timeout', 'worst', 'crew', 'ghost']) {
+  const sg = createGame(seed, { crew: mode !== 'ghost' });
+  while (!sg.s.over) { nextDay(sg); if (mode === 'worst') for (const c of [...sg.cards]) decide(sg, c.id, c.options.length - 1); if (mode === 'crew') for (const c of [...sg.cards]) decide(sg, c.id, 0); }
+  assert.equal(sg.s.day, 90, `seed ${seed} ${mode} ended on day ${sg.s.day}`);
+}
+
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {
   const g = createGame(42, { crew });
