@@ -18,6 +18,7 @@ import { validateEmployee, buildRun, entriesFor, paidOnTime, payrollStreak, payr
 import { countUp, muted, setMuted } from './fx.js';
 import { iconSvg, icon } from './icons.js';
 import { dueMonths } from './recurring.js';
+import { forecast, budgetStatus } from '../workspace/planner.js';
 
 const S = { employees: [], runs: [], payslips: [], rewards: [], redemptions: [], spendable: 0, invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
 const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn, invoices: V4.invoices, standards: V5.standards, payroll: V6.payroll };
@@ -89,6 +90,26 @@ async function audit(action, ref, detail, why) {
   try { await S.repo.insert('activity_log', { n: e.n, day: e.day, agent: e.agent, ref: e.cardId, decision: e.decision, why: e.why, prev_hash: e.prevHash, hash: e.hash }); } catch (x) { console.warn('audit not saved', x.message); }
 }
 async function refresh() { compute(); await checkBadges(); render(); }
+
+// What the AI CFO is told: real totals and counts from this company's books. Never names, GSTINs, invoice lines or employee details.
+S.aiFacts = () => {
+  const s = S.sum, t = S.ctx.today, R = (n) => '₹' + Math.round(n).toLocaleString('en-IN'), rows = s.rows;
+  const f = forecast(rows, { today: t, cash: s.cash, recurring: S.recurring, filings: S.filings, horizon: 60 }, 'base');
+  const open = rows.filter((r) => r.kind === 'sale' && !r.paid_date), owed = {}; for (const r of open) owed[r.party] = (owed[r.party] || 0) + r.total;
+  const top = open.length && s.receivable ? Math.round((Math.max(...Object.values(owed)) / s.receivable) * 100) : 0;
+  const late = open.filter((r) => r.due_date && r.due_date < t), oldest = late.length ? Math.max(...late.map((r) => daysBetween(r.due_date, t))) : 0;
+  const [prev, cur] = s.monthly.slice(-2), over = S.profile.budgets ? budgetStatus(rows, S.profile.budgets, t.slice(0, 7), t).filter((b) => b.status === 'over').length : 0;
+  const lateReturns = S.filingsView.filter((x) => x.status === 'overdue').length, lastRun = S.runs.find((r) => ['approved', 'paid'].includes(r.status)), staff = S.employees.filter((e) => e.active !== false).length;
+  return [`Today ${t}. Cash ${R(s.cash)}, runway ${s.runwayMonths} months, health score ${s.health}/100.`,
+    `Owed to us ${R(s.receivable)} across ${open.length} open invoices; ${R(s.overdueAmt)} overdue (${late.length} invoices, oldest ${oldest} days late); the largest customer is ${top}% of what is owed.`,
+    `We owe ${R(s.payable)}. Next 30 days: collect ${R(s.in30)}, pay ${R(s.out30)}.`,
+    `GST payable this month ${R(s.gst.net.total)}; input credit at risk ${R(s.gst.itcAtRisk)}; ${lateReturns} GST return(s) overdue.`,
+    cur ? `This month sales ${R(cur.income)} and spend ${R(cur.spend)}${prev ? `; last month sales ${R(prev.income)} and spend ${R(prev.spend)}` : ''}.` : '',
+    `60-day cash forecast: lowest ${R(f.min.cash)} on ${f.min.date}${f.firstNegative ? `; goes negative on ${f.firstNegative}` : '; stays positive'}.`,
+    over ? `${over} spending categor${over === 1 ? 'y is' : 'ies are'} over budget.` : '',
+    staff && S.can('write') ? `${staff} employees${lastRun ? `; latest payroll net ${R(lastRun.totals.net)}` : ''}.` : '',
+    `${S.alerts.length} open alerts.`].filter(Boolean).join(' ');
+};
 
 // ---- actions ---------------------------------------------------------------
 const find = (id) => S.entries.find((e) => e.id === id);

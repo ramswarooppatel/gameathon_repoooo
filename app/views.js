@@ -682,7 +682,7 @@ function compliance(S, A) {
 // ---------------------------------------------------------------- Insights
 function insights(S, A) {
   const s = S.sum, out = h('div', { class: 'chat' }), q = h('input', { placeholder: 'Ask anything: "Can I afford a hire next month?"' });
-  const facts = () => `Cash ₹${Math.round(s.cash)}, to collect ₹${Math.round(s.receivable)} (overdue ₹${Math.round(s.overdueAmt)}), to pay ₹${Math.round(s.payable)}, GST payable this month ₹${Math.round(s.gst.net.total)}, runway ${s.runwayMonths} months, health ${s.health}, ${S.alerts.length} open alerts. Due in 30 days: collect ₹${Math.round(s.in30)}, pay ₹${Math.round(s.out30)}.`;
+  const facts = () => S.aiFacts?.() ?? `Cash ₹${Math.round(s.cash)}, to collect ₹${Math.round(s.receivable)} (overdue ₹${Math.round(s.overdueAmt)}), to pay ₹${Math.round(s.payable)}, GST payable this month ₹${Math.round(s.gst.net.total)}, runway ${s.runwayMonths} months, health ${s.health}, ${S.alerts.length} open alerts. Due in 30 days: collect ₹${Math.round(s.in30)}, pay ₹${Math.round(s.out30)}.`;
   const say = async (text, fallback) => {
     out.append(h('div', { class: 'msg me' }, text)); const r = h('div', { class: 'msg ai' }, '…'); out.append(r);
     r.textContent = await ask([{ role: 'system', content: 'You are the Mind Your Funds CFO assistant for an Indian small business. Use only the facts given. Max 80 words, include ₹ numbers, no invented tax rules, end with the next action.' }, { role: 'user', content: `${facts()} Question: ${text.slice(0, 300)}` }], fallback);

@@ -93,6 +93,8 @@
 
 - [Ram → Sumit] FYI Back navigation (small, additive): `main.js` renders `button.page-back` ("Back", secondary, mirrored arrow icon, inline margin) above the `h2` of every in-app page except Today; it uses `history.back()` and falls back to Today in place on deep links (depth in `history.state`). `lab.js` adds `button.go-back` ("Go Back") to the Start overlay (leaves the Lab for the page the user came from) and the End overlay (just closes the popup). `scripts/gen_site.py` adds `a#back` to the landing and legal pages. Restyle freely but keep these class names/ids and the labels; `python scripts/nav_test.py` must stay `NAV OK`. Known gap left for your dialog unification (task 4): the `?` shortcuts help in `palette.js` has no visible close button (Esc and backdrop click work).
 
+- [Ram → Sumit] FYI AI CFO: `views.js` line `const facts = ...` in `insights()` now calls `S.aiFacts?.()` first (real company aggregates built in `main.js`); please keep that call when you restyle the page. Message list, buttons `Explain my month`, `What should I do this week?`, `Can I afford a new hire?` and classes `.msg.ai` / `.msg.me` are used by `python scripts/ai_test.py`.
+
 ## Bugs
 - (none yet) — format: `B1 (reporter) steps → expected/actual → owner → status`
 
