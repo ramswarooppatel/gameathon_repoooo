@@ -53,3 +53,30 @@ What it **does not prove** (say this before they ask):
 - **Does AI see our data?** Aggregates only. No names, GSTINs or invoices.
 - **Synthetic data?** Fictional fixtures plus a seeded simulation. Same seed, same run. No real data.
 - **Blockchain?** No. A SHA-256 hash-chained append-only audit log. Tamper-evident, not decentralised.
+
+## 5. "Why not a real blockchain?"
+
+Say this: *"We took the part of a blockchain that solves our problem, tamper evidence, and left out the parts that would hurt a small business."*
+
+- **No distrust to solve.** A blockchain exists so parties who do not trust each other can agree without a central authority. A company's books have one owner and an accountable admin, so there is nobody to out-vote.
+- **Privacy law.** Financial records on a public chain are visible and cannot be deleted. That conflicts with the DPDP Act right to erasure and with business confidentiality. A hash-chain keeps the data in the database and can still be corrected through new entries.
+- **Cost and speed.** Every action on a chain costs money and seconds. Our log writes in milliseconds and costs nothing extra.
+- **The tax authority is the real source of truth.** GST returns are filed on the government portal. A private chain would not be accepted instead of it.
+- **What we can add without those costs:** publish only the latest chain hash (32 bytes, no business data) to a public timestamp service on a schedule. That gives outside proof that the log existed in that state on that date.
+
+## 6. "Will it be heavy? How is it handled?"
+
+- **Hosting:** static files plus one small serverless function (AI proxy), on Netlify. Data, sign-in and live updates run on Supabase (managed Postgres). There are no servers for us to run.
+- **Weight:** no framework and no build step. The stylesheet is one 15 KB file (gzipped). The biggest download is the Supabase client from a CDN. First screen on a cold load measured about 1.6 s, and repeat visits load from a service-worker cache.
+- **Cost drivers:** database storage, database requests, and AI tokens. The AI is the smallest, because it only sends short aggregate prompts and is rate-limited.
+- **Security at scale:** access rules (row-level security) are enforced in the database, so adding users does not weaken them.
+- **Known limits (be honest):**
+  - The app loads a company's rows into the browser. That is comfortable for a small business (thousands of rows) but has no pagination yet. Past roughly tens of thousands of rows, add server-side paging and date filters.
+  - Verifying the audit chain re-hashes every entry in the browser, which is linear in the number of entries. Fine for thousands, so seal in batches for much more.
+  - Not load-tested with many concurrent companies; Supabase and Netlify scale horizontally, but we have not measured it.
+  - XP is computed in the browser (an honest-user assumption). Cash rewards are protected by the pool cap and admin approval.
+- **Backups and recovery:** one-click full JSON backup in the app, plus Supabase's own database backups on paid plans.
+
+## 7. "Do you use any AI model or not?"
+
+Yes, one use: a hosted language model explains numbers in plain English (section 1). Nothing else is machine learning. Tax, forecasts, fraud flags, approvals and rewards are rules written in code and covered by tests.
