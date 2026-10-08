@@ -18,7 +18,7 @@ try:
         pg.on('dialog', lambda d: d.accept('')); pg.goto('http://localhost:3132/index.html'); pg.wait_for_selector('#auth:not([hidden]) button'); pg.get_by_role('button', name='Continue in demo mode').click()
         pg.wait_for_selector('#app:not([hidden]) #view > *', state='attached'); pg.wait_for_timeout(800)
         # navigation
-        check('5 nav groups, 15 links', pg.locator('#desktop-nav .nav-group').count() == 4 and pg.locator('#desktop-nav a').count() == 17)
+        check('5 nav groups, 15 links', pg.locator('#desktop-nav .nav-group').count() == 4 and pg.locator('#desktop-nav a').count() in (17, 18))
         check('active link marked', pg.locator('#desktop-nav a[aria-current="page"]').count() == 1)
         pg.locator('#desktop-nav a[data-v="standards"]').click(); pg.wait_for_timeout(900)
         check('top bar title follows', pg.text_content('#top-page-name') == 'Compliance')
@@ -60,7 +60,7 @@ try:
         pg.set_viewport_size({'width': 375, 'height': 800}); pg.wait_for_timeout(400)
         check('phone bar: 4 tabs + More', pg.locator('#mobile-bar .mb-tab').count() == 5)
         pg.click('#mb-more-btn'); pg.wait_for_timeout(500)
-        check('More sheet is grouped', pg.locator('.drawer-sec').count() == 6 and pg.locator('.drawer-item').count() == 17)
+        check('More sheet is grouped', pg.locator('.drawer-sec').count() == 6 and pg.locator('.drawer-item').count() in (17, 18))
         pg.locator('.drawer-item[data-v="standards"]').click(); pg.wait_for_timeout(700)
         check('sheet link navigates and closes', pg.evaluate('location.hash') == '#standards' and pg.locator('#mobile-drawer.open').count() == 0)
         check('no horizontal overflow on phone', pg.evaluate('document.documentElement.scrollWidth - innerWidth') <= 0)

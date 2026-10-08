@@ -12,14 +12,17 @@ import * as V3 from './views3.js';
 import { invoiceHtml, taxInvoiceHtml } from './invoice.js';
 import * as V4 from './views4.js';
 import * as V5 from './views5.js';
+import * as V6 from './views6.js';
+import { payslipPdf } from './payslip.js';
+import { validateEmployee, buildRun, entriesFor, paidOnTime, payrollStreak, payrollReadiness, registerCsv, bankCsv, ecrText, monthName } from '../workspace/payroll.js';
 import { countUp, muted, setMuted } from './fx.js';
 import { iconSvg } from './icons.js';
 import { dueMonths } from './recurring.js';
 
-const S = { rewards: [], redemptions: [], spendable: 0, invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
-const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn, invoices: V4.invoices, standards: V5.standards };
+const S = { employees: [], runs: [], payslips: [], rewards: [], redemptions: [], spendable: 0, invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
+const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn, invoices: V4.invoices, standards: V5.standards, payroll: V6.payroll };
 ALL.rewards = (s, a) => V5.rewardsPage(s, a, VIEWS.rewards);
-const TITLES = { standards: 'Compliance', invoices: 'Invoices', today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
+const TITLES = { payroll: 'Payroll', standards: 'Compliance', invoices: 'Invoices', today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
 let view = location.hash.slice(1) || 'today', booted = false, session = null;
 
 // Role permissions. viewer: read · finance: write · admin: everything.
@@ -49,12 +52,12 @@ function compute() {
   const pend = S.allRows.filter((r) => r.approval === 'pending').length;
   const ap = pend && S.can('admin') ? [{ sev: 'med', type: 'approval', text: `${pend} entr${pend === 1 ? 'y is' : 'ies are'} waiting for your approval.` }] : [];
   S.alerts = [...S.sum.alerts, ...fa, ...ap].sort((a, b) => ({ high: 0, med: 1 }[a.sev] - { high: 0, med: 1 }[b.sev]));
-  S.ctx = makeCtx({ events: S.events, entries: S.entries, filings: S.filings, profile: S.profile, sum: S.sum, today: t });
+  S.ctx = makeCtx({ events: S.events, entries: S.entries, filings: S.filings, profile: S.profile, sum: S.sum, today: t, runs: S.runs });
 }
 
 async function load() {
   const r = S.repo;
-  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks, S.invoices, S.items, S.inbox, S.rewards, S.redemptions] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks'), r.list('invoices', { col: 'date', asc: false }), r.list('items', { col: 'name', asc: true }), r.inbox().catch(() => []), r.list('rewards', { col: 'xp_cost', asc: true }), r.list('redemptions', { col: 'created_at', asc: false })]);
+  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks, S.invoices, S.items, S.inbox, S.rewards, S.redemptions, S.employees, S.runs, S.payslips] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks'), r.list('invoices', { col: 'date', asc: false }), r.list('items', { col: 'name', asc: true }), r.inbox().catch(() => []), r.list('rewards', { col: 'xp_cost', asc: true }), r.list('redemptions', { col: 'created_at', asc: false }), r.list('employees', { col: 'name', asc: true }).catch(() => []), r.list('payroll_runs', { col: 'period', asc: false }).catch(() => []), r.list('payslips').catch(() => [])]);
   S.profile = await r.getProfile();
   S.members = await r.members().catch(() => []);
   const log = await r.list('activity_log', { col: 'n', asc: true });
@@ -251,6 +254,99 @@ const A = {
     const it = S.items.find((x) => x.id === id); await S.repo.remove('items', id); S.items = S.items.filter((x) => x.id !== id);
     await audit('item.delete', id, { name: it.name }, `Removed "${it.name}" from the item catalog.`); await refresh();
   },
+  // ---- payroll ----
+  async saveEmployee(e, id) {
+    if (!need('write')) return null;
+    e = { ...e, code: e.code || `E${String(S.employees.length + 1).padStart(3, '0')}` };
+    const errs = validateEmployee(e); if (errs.length) return toast('Check the details', errs[0], 'bad'), null;
+    if (S.employees.some((x) => x.code === e.code && x.id !== id)) return toast('Employee code already used', e.code, 'bad'), null;
+    let row;
+    try {
+      if (id) { await S.repo.update('employees', id, e); row = Object.assign(S.employees.find((x) => x.id === id), e); }
+      else { row = await S.repo.insert('employees', e); if (!row) return toast('Employee code already used', e.code, 'bad'), null; S.employees.push(row); }
+    } catch (x) { toast('Could not save', x.message, 'bad'); return null; }
+    await audit(id ? 'employee.update' : 'employee.add', row.id, { name: e.name, code: e.code }, `${id ? 'Updated' : 'Added'} employee ${e.name} (${e.code}).`);
+    if (payrollReadiness(S.employees, today().slice(0, 7), Infinity).slice(0, 4).every((c) => c.ok)) await award('payroll_ready', 'once', XP.payroll_ready, 'Payroll details complete');
+    await refresh(); return row;
+  },
+  async importEmployees(rows) {
+    if (!need('write')) return;
+    let n = 0;
+    for (const r of rows) {
+      const code = r.code || `E${String(S.employees.length + 1).padStart(3, '0')}`;
+      if (S.employees.some((x) => x.code === code)) continue;
+      const row = await S.repo.insert('employees', { ...r, code }); if (row) { S.employees.push(row); n++; }
+    }
+    await audit('employee.import', null, { added: n }, `Imported ${n} employee(s) from a CSV file.`);
+    toast('Imported', `${n} employee(s) added${n < rows.length ? `, ${rows.length - n} skipped (code already used)` : ''}`); await refresh();
+  },
+  async setEmployeeActive(id, on, leftDate = null) {
+    if (!need('write')) return;
+    const e = S.employees.find((x) => x.id === id), patch = { active: on, left_date: on ? null : leftDate || today() };
+    await S.repo.update('employees', id, patch); Object.assign(e, patch);
+    await audit(on ? 'employee.rejoin' : 'employee.exit', id, { name: e.name }, `${on ? 'Reactivated' : 'Marked as left'} employee ${e.name}.`); await refresh();
+  },
+  async savePayrollSettings(o) {
+    if (!need('admin')) return;
+    await S.repo.saveProfile({ payroll_settings: o }); S.profile = { ...S.profile, payroll_settings: o };
+    await audit('payroll.settings', null, {}, 'Updated payroll settings.'); toast('Payroll settings saved'); await refresh();
+  },
+  async saveRun(period, inputs, status, payDate) {
+    if (!need('write')) return null;
+    const ex = S.runs.find((r) => r.period === period);
+    if (ex && ['approved', 'paid'].includes(ex.status)) return toast('Already approved', `${monthName(period)} is locked.`, 'bad'), null;
+    const built = buildRun(S.employees, inputs, period); if (!built.slips.length) return toast('No employees on this run', 'Add employees first.', 'bad'), null;
+    const patch = { period, status, pay_date: payDate, totals: built.totals, note: null };
+    try {
+      let run;
+      if (ex) { await S.repo.update('payroll_runs', ex.id, patch); run = Object.assign(ex, patch); for (const p of S.payslips.filter((x) => x.run_id === ex.id)) await S.repo.remove('payslips', p.id); S.payslips = S.payslips.filter((x) => x.run_id !== ex.id); }
+      else { run = await S.repo.insert('payroll_runs', patch); if (!run) return toast('A run for this month exists', period, 'bad'), null; S.runs.unshift(run); }
+      for (const s of built.slips) { const p = await S.repo.insert('payslips', { run_id: run.id, employee_id: s.employee_id, employee: s.employee, input: s.input, calc: s.calc, net: s.net }); if (p) S.payslips.push(p); }
+      await audit('payroll.' + status, run.id, { period, headcount: built.totals.headcount, net: built.totals.net }, `${status === 'pending' ? 'Submitted' : 'Saved a draft of'} the ${monthName(period)} payroll for ${built.totals.headcount} employee(s): net pay ${inr(built.totals.net)}, employer cost ${inr(built.totals.employerCost)}.`);
+      await award('payroll_run', period, XP.payroll_run, 'Payroll prepared'); toast(status === 'pending' ? 'Sent for approval' : 'Draft saved', monthName(period)); await refresh(); return run;
+    } catch (x) { toast('Could not save payroll', x.message, 'bad'); return null; }
+  },
+  async rejectRun(id, note) {
+    if (!need('admin')) return;
+    const r = S.runs.find((x) => x.id === id); await S.repo.update('payroll_runs', id, { status: 'draft', note: note || null }); Object.assign(r, { status: 'draft', note: note || null });
+    await audit('payroll.reject', id, { period: r.period }, `Sent the ${monthName(r.period)} payroll back to draft${note ? `: ${note}` : ''}.`); await refresh();
+  },
+  async approveRun(id) {
+    if (!need('admin')) return;
+    const r = S.runs.find((x) => x.id === id); if (r.status !== 'pending') return;
+    if (S.repo.mode === 'cloud' && r.created_by === S.repo.userId && S.members.filter((m) => m.role === 'admin').length > 1) return toast('Another admin must approve', 'The person who prepared a run cannot approve it.', 'bad');
+    try { await S.repo.update('payroll_runs', id, { status: 'approved' }); } catch (x) { return toast('Could not approve', x.message, 'bad'); }
+    r.status = 'approved';
+    for (const e of entriesFor(r.period, r.totals, r.pay_date)) { const row = await S.repo.insert('entries', { ...e, payroll_run_id: id }); if (row) S.entries.unshift(row); }
+    await audit('payroll.approve', id, { period: r.period, net: r.totals.net }, `Approved the ${monthName(r.period)} payroll. Created salary and statutory dues entries (net pay ${inr(r.totals.net)}).`);
+    toast('Payroll approved', 'Salary and statutory dues are now in your books.'); await refresh();
+  },
+  async markRunPaid(id, date = today()) {
+    if (!need('admin')) return;
+    const r = S.runs.find((x) => x.id === id); if (r.status !== 'approved') return;
+    const sal = S.entries.find((e) => e.payroll_run_id === id && e.kind === 'salary'); if (sal && !sal.paid_date) await A.markPaid(sal.id, date, true);
+    await S.repo.update('payroll_runs', id, { status: 'paid' }); r.status = 'paid'; r.paid_at = new Date().toISOString();
+    const onTime = paidOnTime(r.period, date); compute();
+    await audit('payroll.paid', id, { period: r.period, onTime }, `Marked the ${monthName(r.period)} payroll as paid on ${date}. ${onTime ? 'On time.' : 'Later than the 7th of the next month.'}`);
+    if (onTime) { await award('payroll_on_time', r.period, XP.payroll_on_time, 'Salaries paid on time'); }
+    toast('Payroll paid', onTime ? `On time. Streak: ${payrollStreak(S.events, today().slice(0, 7))} month(s)` : 'Salaries are due by the 7th of the next month.'); await refresh();
+  },
+  async deleteRun(id) {
+    if (!need('write')) return;
+    const r = S.runs.find((x) => x.id === id); if (r?.status !== 'draft') return;
+    for (const p of S.payslips.filter((x) => x.run_id === id)) await S.repo.remove('payslips', p.id);
+    await S.repo.remove('payroll_runs', id); S.runs = S.runs.filter((x) => x.id !== id); S.payslips = S.payslips.filter((x) => x.run_id !== id);
+    await audit('payroll.delete', id, { period: r.period }, `Deleted the draft ${monthName(r.period)} payroll.`); await refresh();
+  },
+  downloadPayroll(runId, kind, employeeId) {
+    const run = S.runs.find((x) => x.id === runId), slips = S.payslips.filter((x) => x.run_id === runId), save = (name, data, type) => h('a', { href: URL.createObjectURL(new Blob([data], { type })), download: name }).click();
+    if (!need('write')) return;
+    if (kind === 'register') save(`payroll-register-${run.period}.csv`, registerCsv(slips.map((s) => ({ ...s, employee: s.employee }))), 'text/csv');
+    else if (kind === 'bank') save(`bank-transfer-${run.period}.csv`, bankCsv(slips, run.period), 'text/csv');
+    else if (kind === 'ecr') save(`ecr-${run.period}.txt`, ecrText(slips), 'text/plain');
+    else save(employeeId ? `Payslip-${run.period}-${slips.find((s) => s.employee_id === employeeId)?.employee.code || 'employee'}.pdf` : `Payslips-${run.period}.pdf`, payslipPdf(run, employeeId ? slips.filter((s) => s.employee_id === employeeId) : slips, S.profile), 'application/pdf');
+    audit('payroll.download', runId, { kind, period: run.period }, `Downloaded ${kind === 'payslip' ? (employeeId ? 'a payslip' : 'all payslips') : kind + ' file'} for ${monthName(run.period)}.`);
+  },
   async saveReward(r) {
     if (!need('admin')) return;
     const row = await S.repo.insert('rewards', { ...r, active: true }); if (!row) return toast('Already exists', r.name, 'bad');
@@ -321,6 +417,7 @@ const A = {
   async remove(id) {
     if (!need('admin')) return;
     const r = find(id);
+    if (r.payroll_run_id) return toast('Part of a payroll run', 'Payroll entries are managed from the Payroll page.', 'bad');
     if (r.invoice_id && S.invoices.some((i) => i.id === r.invoice_id)) return toast('Part of an invoice', 'Cancel the invoice instead. That removes its entries and keeps the books consistent.', 'bad');
     await audit('entry.delete', id, { party: r.party, kind: r.kind }, `Deleted ${r.kind} "${r.number || ''}" with ${r.party} dated ${r.date}.`);
     await S.repo.remove('entries', id); S.entries = S.entries.filter((e) => e.id !== id); await refresh();
@@ -355,7 +452,7 @@ const A = {
     await award('alert_resolved', `file:${type}:${period}`, XP.alert_resolved, 'Compliance alert resolved'); await refresh();
   },
   async saveProfile(p) {
-    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings', 'reward_pool_monthly'];
+    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings', 'reward_pool_monthly', 'payroll_settings'];
     if (!S.can('admin')) { for (const k of orgKeys) delete p[k]; }
     else if (Object.keys(p).some((k) => orgKeys.includes(k)) === false) { /* personal only */ }
     await S.repo.saveProfile({ ...p, health: S.sum.health }); S.profile = { ...S.profile, ...p };
@@ -414,7 +511,16 @@ async function generateRecurring() {
 }
 
 // ---- chrome / render ---------------------------------------------------------
+// Payroll is reachable from the sidebar and the More sheet even before nav.js lists it (see TODO.md request to Sumit). Disappears from here once nav.js has it.
+function ensurePayrollNav() {
+  if (document.querySelector('[data-v="payroll"]')) return;
+  const svg = (c) => iconSvg('users', c === 'nav-icon' ? 18 : 22).replace('<svg ', `<svg class="${c}" `);
+  const side = document.querySelector('#desktop-nav a[data-v="transactions"]'), sheet = document.querySelector('.drawer-item[data-v="transactions"]');
+  if (side) side.insertAdjacentHTML('afterend', `<a href="#payroll" data-v="payroll" data-role="write" title="Payroll">${svg('nav-icon')}<span class="nav-label">Payroll</span></a>`);
+  if (sheet) sheet.insertAdjacentHTML('afterend', `<a href="#payroll" class="drawer-item" data-v="payroll" data-role="write">${svg('drawer-icon')}<span>Payroll</span></a>`);
+}
 function chrome() {
+  ensurePayrollNav();
   $('#lv-name').textContent = `Lv ${S.level.n} · ${S.level.name}`; $('#lv-xp').textContent = `${S.xp} XP`; $('#lv-bar').style.width = S.level.pct + '%';
   $('#streak').textContent = `${S.ctx.streak}-day streak`; $('#who').textContent = `${who()} · ${S.repo.role}`; $('#org').textContent = S.profile.name || 'Oxro Labs';
   $('#mode').textContent = S.repo.mode === 'cloud' ? 'Synced' : 'Demo'; $('#mode').className = 'pill ' + (S.repo.mode === 'cloud' ? '' : 'warn');

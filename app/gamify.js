@@ -1,9 +1,10 @@
 // Engagement layer (pure). XP comes from real finance habits; nothing here is a game world.
 import { validGstin } from '../tax/gst.js';
 import { addDays } from '../workspace/calc.js';
+import { payrollStreak } from '../workspace/payroll.js';
 
 export const LEVELS = [[0, 'Starter'], [100, 'Tracker'], [250, 'Planner'], [500, 'Controller'], [900, 'Strategist'], [1500, 'Finance Lead'], [2400, 'CFO']];
-export const XP = { checkin: 10, entry_added: 5, paid_on_time: 15, filing_on_time: 40, alert_resolved: 10, profile_complete: 30, badge: 25 };
+export const XP = { checkin: 10, entry_added: 5, paid_on_time: 15, filing_on_time: 40, alert_resolved: 10, profile_complete: 30, badge: 25, payroll_run: 20, payroll_on_time: 40, payroll_ready: 30 };
 
 export function levelOf(xp) {
   let i = 0; while (i + 1 < LEVELS.length && xp >= LEVELS[i + 1][0]) i++;
@@ -41,13 +42,16 @@ export const BADGES = [
   { code: 'scholar', title: 'Scholar', desc: 'Pass 4 money lessons', test: (c) => c.events.filter((e) => e.kind === 'lesson').length >= 4 },
   { code: 'closer', title: 'Month-End Closer', desc: 'Complete a month-end close', test: (c) => c.events.some((e) => e.kind === 'month_close') },
   { code: 'routine5', title: 'Routine Pro', desc: 'Finish the daily routine 5 times', test: (c) => c.events.filter((e) => e.kind === 'daily_routine').length >= 5 },
+  { code: 'payday', title: 'Payday', desc: 'Pay your first payroll run', test: (c) => c.runs.some((r) => r.status === 'paid') },
+  { code: 'payday_pro', title: 'Payday Pro', desc: 'Pay salaries on time 3 months in a row', test: (c) => c.payrollStreak >= 3 },
+  { code: 'dues_clean', title: 'Dues Cleared', desc: 'Remit PF, ESI, TDS or PT on time 3 times', test: (c) => c.entries.filter((e) => e.category === 'Statutory dues' && e.paid_date && e.due_date && e.paid_date <= e.due_date).length >= 3 },
   { code: 'streak3', title: 'On a Roll', desc: '3-day check-in streak', test: (c) => c.streak >= 3 },
   { code: 'streak7', title: 'Habit Builder', desc: '7-day check-in streak', test: (c) => c.streak >= 7 },
 ];
 
-export function makeCtx({ events, entries, filings, profile, sum, today }) {
+export function makeCtx({ events, entries, filings, profile, sum, today, runs = [] }) {
   return {
-    events, entries, filings, profile, sum, today, streak: streakOf(events, today),
+    events, entries, filings, profile, sum, today, runs, streak: streakOf(events, today), payrollStreak: payrollStreak(events, today.slice(0, 7)),
     has: (kind, day) => events.some((e) => e.kind === kind && e.day === day),
     countToday: (kind) => events.filter((e) => e.kind === kind && e.day === today).length,
   };

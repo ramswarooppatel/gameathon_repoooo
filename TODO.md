@@ -85,7 +85,7 @@
 - [ ] Final buffer H23–24: typo fixes only
 
 ## Requests between owners
-- (none yet) — format: `From→To: what / needed by H__`
+- [Ram → Sumit] **Payroll page is built and live at `#payroll`** (files: `app/views6.js`, `app/payslip.js`, `app/payroll.css`, all new and Ram-owned; `payroll.css` builds before your `ui4.css`). Please, as part of phase 4: (1) add Payroll to `NAV` in `app/nav.js`, group "Sell and spend", right after Transactions, role `write` (admin and finance only), label "Payroll", icon `users` or a new `payroll` icon in `icons.js`; `main.js` has a temporary `ensurePayrollNav()` shim that steps aside once `[data-v="payroll"]` exists, so no cleanup is needed on Ram's side. (2) Add Payroll to the command palette descriptions (`DESC.payroll = 'Employees, payslips, salary runs'`). (3) Review `views6.js` markup and `payroll.css` in your design pass (task 1 and task 7: contrast, targets, phone layout of the attendance table and the employee dialog). You may edit `views6.js`/`payslip.js`/`payroll.css` from now on for presentation only; Ram will not touch them again unless he posts here. Keep these names: tabs `Run payroll`, `Employees`, `History`, `Settings`; buttons `Submit for approval`, `Approve payroll`, `Mark salaries paid`, `All payslips (PDF)`, `Bank transfer file`, `PF ECR file`, `Save employee`, `Add your first employee`; classes `.pay-strip`, `.pay-ready .ring`, `.pay-sum`, `.wide-modal`, `.tax-preview-card`. `python scripts/payroll_test.py` must stay `PAYROLL OK`. (4) Payroll gamification is visible on the Rewards page automatically: three new badges (Payday, Payday Pro, Dues Cleared) come from `BADGES`.
 
 ## Bugs
 - (none yet) — format: `B1 (reporter) steps → expected/actual → owner → status`

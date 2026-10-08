@@ -3,6 +3,8 @@ import { split, validGstin, makeGstin, netPayable } from '../tax/gst.js';
 import { calcInvoice, inWords, nextNumber, fy, supplyFor, parseShared, exportInvoice } from '../tax/invoice.js';
 import * as EW from '../tax/eway.js';
 import { invoicePdf, wrap, textWidth } from '../app/pdf.js';
+import { calcPayslip, annualTax, tdsMonthly } from '../tax/payroll.js';
+import { buildRun, entriesFor, dueDates, paidOnTime, parseEmployeesCsv, payrollStreak, ecrText, bankCsv } from '../workspace/payroll.js';
 import { createLedger } from '../ledger/blackbox.js';
 import { createGame, nextDay, decide } from './engine.js';
 
@@ -106,6 +108,21 @@ const PDF = new TextDecoder('latin1').decode(invoicePdf({ number: 'INV/26-27/000
 assert.ok(PDF.startsWith('%PDF-1.4') && PDF.trimEnd().endsWith('%%EOF') && PDF.includes('Rs. 2,885.00') && PDF.includes('INV/26-27/0001'));
 const XO = +PDF.match(/startxref\n(\d+)/)[1]; assert.equal(PDF.slice(XO, XO + 4), 'xref');   // the xref offset points at the table
 assert.deepEqual(wrap('a\nb c', 500, 9), ['a', 'b c']); assert.ok(textWidth('Hello', 10) > 20 && textWidth('Hello', 10) < 30);
+
+// Payroll
+const PEMP = { id: 'a', code: 'E1', name: 'Asha', basic: 30000, hra: 12000, allowances: 8000, pf_on: true, pf_cap: true, esi_on: false, pt_state: '27', tds_on: true };
+const PSLIP = calcPayslip(PEMP, { days: 31, lop: 0, month: 10 });
+assert.equal(PSLIP.gross, 50000); assert.equal(PSLIP.pfEmp, 1800); assert.equal(PSLIP.employer.eps, 1250); assert.equal(PSLIP.employer.epf, 550); assert.equal(PSLIP.pt, 200); assert.equal(PSLIP.net, 48000);
+assert.equal(calcPayslip(PEMP, { days: 30, lop: 15, month: 2 }).gross, 25000); assert.equal(calcPayslip(PEMP, { days: 28, lop: 0, month: 2 }).pt, 300);   // loss of pay halves the pay; MH February PT is 300
+assert.equal(annualTax(1500000), 97500); assert.equal(annualTax(1275000), 0); assert.equal(tdsMonthly(1500000), 8125);                                  // new regime, 87A rebate to 12 lakh taxable
+const LOWPAID = { id: 'b', name: 'Ravi', basic: 12000, hra: 4000, allowances: 2000, pf_on: true, pf_cap: true, esi_on: true, pt_state: '29', join_date: '2026-10-11' };
+const PRUN = buildRun([PEMP, LOWPAID, { id: 'c', name: 'Left', basic: 9000, left_date: '2026-09-30' }], {}, '2026-10');
+assert.equal(PRUN.slips.length, 2); assert.equal(PRUN.slips[1].calc.lop, 10); assert.equal(PRUN.slips[1].calc.esiEmp, 92); assert.equal(PRUN.totals.net, 59127);   // joiner is prorated, leaver is off the run
+const PENT = entriesFor('2026-10', PRUN.totals, '2026-10-31'); assert.deepEqual(PENT.map((x) => x.number), ['PAY-2026-10', 'PF-2026-10', 'ESI-2026-10', 'PT-2026-10']);
+assert.equal(PENT.reduce((a, x) => a + x.taxable, 0), PRUN.totals.net + PRUN.totals.pfTotal + PRUN.totals.esiTotal + PRUN.totals.pt + PRUN.totals.tds);              // cash out = net pay + everything owed to authorities
+assert.equal(dueDates('2026-12').pf, '2027-01-15'); assert.ok(paidOnTime('2026-10', '2026-11-07') && !paidOnTime('2026-10', '2026-11-08'));
+assert.equal(parseEmployeesCsv('code,name,basic,pf\nE1,Neha,25000,yes\nE2,,1,').rows.length, 1); assert.equal(payrollStreak([{ kind: 'payroll_on_time', ref: '2026-09' }, { kind: 'payroll_on_time', ref: '2026-08' }], '2026-10'), 2);
+assert.ok(ecrText(PRUN.slips).split('\n')[0].split('#~#').length === 11); assert.ok(bankCsv(PRUN.slips, '2026-10').includes('Salary 2026-10'));
 
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {

@@ -1,0 +1,19 @@
+/* Payroll page. Token-based; Sumit's ui4.css loads after this file and wins. */
+.pay-strip { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr) auto; gap: var(--sp-5); align-items: center; }
+.pay-streak { display: flex; gap: var(--sp-3); align-items: center; } .pay-flame { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--warn-bg); color: var(--warn); flex: none; }
+.pay-badges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); } .pay-badges .badge { min-width: 0; }
+.pay-ready { display: grid; justify-items: center; gap: 4px; } .pay-ready .ring { --p: 0; width: 72px; height: 72px; border-radius: 50%; display: grid; place-content: center; background: radial-gradient(closest-side, var(--card) 78%, transparent 80%), conic-gradient(var(--acc) calc(var(--p) * 1%), var(--line) 0); } .pay-ready .ring b { font-size: 16px; color: var(--tx-title); }
+@media (max-width: 900px) { .pay-strip { grid-template-columns: minmax(0, 1fr); } .pay-badges { grid-template-columns: minmax(0, 1fr); } }
+.pay-month { margin: 0; min-width: 150px; text-align: center; font-size: 18px; color: var(--tx-title); text-transform: none; letter-spacing: 0; }
+.stepper { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+.stepper li { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); opacity: 0.7; }
+.stepper li.on { opacity: 1; border-color: var(--acc); background: var(--acc-glow); } .stepper li.done { opacity: 1; }
+.stepper i { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; background: var(--card-subtle); border: 1px solid var(--line); flex: none; }
+.stepper li.on i, .stepper li.done i { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+@media (max-width: 760px) { .stepper { grid-template-columns: minmax(0, 1fr); } }
+.pay-sum { gap: var(--sp-3); } .pay-sum .card { min-width: 0; } .pay-warn { border-color: var(--bad); }
+table tr.tot td { font-weight: 700; border-top: 2px solid var(--line); }
+.pay-table input, table input[type=number] { width: 88px; min-width: 0; }
+label.inline { display: inline-flex; align-items: center; gap: 8px; }
+.emp-form { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--sp-4); align-items: start; } .emp-form .form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .emp-form .form > * { min-width: 0; } .emp-form .form input:not([type=checkbox]), .emp-form .form select { width: 100%; min-width: 0; } .emp-form .full { grid-column: 1 / -1; }
+@media (max-width: 760px) { .emp-form { grid-template-columns: minmax(0, 1fr); } }

@@ -1,9 +1,9 @@
 // Data layer. Cloud = Supabase (company workspace, RLS by org role). Demo = this browser only.
 import * as db from '../db/supabase.js';
 
-const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'], items: ['name'], invoices: ['number'], rewards: ['name'] };
-const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks', 'invoices', 'items', 'rewards', 'redemptions']);
-const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings', 'reward_pool_monthly'];
+const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'], items: ['name'], invoices: ['number'], rewards: ['name'], employees: ['code'], payroll_runs: ['period'] };
+const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks', 'invoices', 'items', 'rewards', 'redemptions', 'employees', 'payroll_runs', 'payslips']);
+const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings', 'reward_pool_monthly', 'payroll_settings'];
 const KEY = 'myf-demo-data';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));

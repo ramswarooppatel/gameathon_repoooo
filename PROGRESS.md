@@ -15,8 +15,9 @@ Rule: every schema change ships as a new file in `supabase/migrations/` and is l
 | 7 | `20261008060000_workflow.sql` | `orgs.budgets`, `checklist_ticks` (weekly + month-end checklist state) | ⬜ pending |
 | 8 | `20261009000000_invoicing.sql` | `invoices` (immutable once issued), `items`, `orgs.invoice_settings`, unique GSTIN per workspace, `parties.address/pincode`, `entries.invoice_id`, `is_buyer()`, `respond_invoice()` | ⬜ pending |
 | 9 | `20261010000000_rewards_pool.sql` | `rewards`, `redemptions`, `orgs.reward_pool_monthly`; trigger enforces XP balance and the monthly pool | ⬜ pending |
+| 10 | `20261011000000_payroll.sql` | `employees`, `payroll_runs`, `payslips` (admin and finance only), maker-checker approval trigger, payslip lock, `entries.payroll_run_id`, `orgs.payroll_settings` | ⬜ pending |
 
-Apply all nine: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
+Apply all ten: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
 Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-up), add redirect URLs, put `SUPABASE_ANON_KEY` in `.env`, run `npm run sync-env`.
 
 ## Finance manager (`index.html`, `app/`)
@@ -86,6 +87,19 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Rewards store: company monthly pool, reward catalog, XP redemption, admin approval, delivery; DB-enforced balance and pool cap | ✅ demo (`scripts/rewards_test.py`); cloud ⬜ until migration 9 |
 | Who pays: points free; company funds cash rewards; partner perks planned and labelled | ✅ explained in app |
 | Limits | XP is still awarded client-side, so approval plus the pool cap bound the loss. No two-step sign-in, ISO 20022 import or e-invoice yet. |
+
+## Payroll (page `#payroll`, `tax/payroll.js`, `workspace/payroll.js`, `app/views6.js`, `app/payslip.js`)
+| Area | Status |
+|------|--------|
+| Employees: salary structure (basic, HRA, allowances), PF, ESI, professional tax, TDS flags, PAN/UAN/bank, joiners and leavers, CSV import with template | ✅ |
+| Statutory maths: PF 12% on the ₹15,000 wage ceiling with EPS split and admin/EDLI, ESI 0.75% / 3.25%, professional tax (MH, KA, GJ, TN, flat), TDS estimate (new regime, 87A rebate, cess), loss of pay, auto proration | ✅ planning estimates, tested in `core/selfcheck.js` |
+| Monthly run: attendance and one-off items, live payslips, readiness checks, cash-after-payroll warning, draft, submit, approve, mark paid, locked once approved | ✅ (`scripts/payroll_test.py`) |
+| Maker-checker: finance prepares, an admin approves; DB trigger stops the preparer approving when another admin exists | ✅ cloud ⬜ untested until migration 10 |
+| Books link: approval creates the salary entry and PF, ESI, TDS, PT dues with the right due dates, so the cash planner and Compliance see them; payroll entries cannot be deleted by hand | ✅ |
+| Files: payslip PDF (one page per employee), bank transfer CSV, payroll register CSV, PF ECR text | ✅ ECR and bank formats are planning aids: validate on the portal or with your bank |
+| Gamification: payroll streak, badges Payday, Payday Pro, Dues Cleared, XP for preparing a run (20), paying on time (40), complete employee data (30), and paying dues on time | ✅ |
+| Access: admin and finance only (RLS); viewers see a restricted notice | ✅ |
+| Not built | Form 16 / 24Q, leave management, reimbursement claims workflow, loans schedule, gratuity and bonus acts, automatic bank payments, salary revisions history, multi-state PT per employee beyond the table |
 
 ## Seed data
 `supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).
