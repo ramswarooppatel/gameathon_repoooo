@@ -1,6 +1,6 @@
 // Service worker: instant repeat loads (stale-while-revalidate for static assets), fresh pages (network-first for HTML), offline page on failed navigation.
 // Same-origin GETs only; /api/* and cross-origin calls (Supabase, Groq) are never touched.
-const CACHE = 'myf-v7';
+const CACHE = 'myf-v8';
 const SHELL = ['./', 'index.html', 'offline.html', 'manifest.webmanifest', 'app/bundle.min.css', 'public/logo-64.png', 'public/logo-128.png', 'public/icon-192.png', 'public/icon-512.png',
   'app/main.js', 'app/nav.js', 'app/pdf.js', 'app/views4.js', 'app/views5.js', 'app/standards.js'];
 const STATIC = /\.(?:css|js|png|webp|jpg|jpeg|svg|woff2?)$/i;
@@ -15,7 +15,7 @@ self.addEventListener('fetch', (e) => {
   if (STATIC.test(u.pathname)) {                       // stale-while-revalidate
     e.respondWith(caches.open(CACHE).then(async (c) => {
       const hit = await c.match(e.request);
-      const net = fetch(e.request).then((r) => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);
+      const net = fetch(e.request, { cache: 'no-cache' }).then((r) => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);   // revalidate with the server so the browser HTTP cache cannot hand back an old copy
       return hit || net;
     }));
     return;

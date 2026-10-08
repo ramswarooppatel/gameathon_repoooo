@@ -30,6 +30,8 @@ try:
         imp = pg.locator('#impact').inner_text()
         check('impact from engine state', 'DECISION IMPACT' in imp.upper() and 'days earlier' in imp and 'Business health' in imp)
         check('learned + existing lesson link', 'Plan around when money moves' in imp and 'Profit is not cash' in imp and pg.locator('#impact a.btn').get_attribute('href') == 'index.html#learn')
+        pg.wait_for_timeout(3000); pg.click('#next'); pg.wait_for_timeout(100); pg.click('#next'); pg.wait_for_timeout(300)
+        check('impact stays visible after the decision (3s and two more days)', pg.locator('#impact').is_visible() and 'DECISION IMPACT' in pg.locator('#impact').inner_text().upper() and 'Profit is not cash' in pg.locator('#impact').inner_text())
         check('ghost twin still advances', int(pg.text_content('#h-day')) >= 10 and pg.text_content('#h-ghealth').strip().isdigit())
         # ---- fraud card: Pay anyway must never be labelled Recommended
         check('fraud card arrives', step_until('.card:has-text("Suspicious bill")'))
