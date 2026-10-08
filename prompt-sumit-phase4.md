@@ -1,78 +1,296 @@
-# Sumit — Phase 4 prompt (paste into your AI assistant)
+# Sumit — Phase 4 prompt (paste the whole file into your AI assistant)
 
-Context: product is **Mind Your Funds / Oxro Labs · Finance Desk**, a gamified finance manager for small businesses. Since your last merge, Ram added **grouped navigation** (`app/nav.js`), **Invoices** (GST invoice form, PDF, e-way bill, received invoices), a rebuilt **Add transaction** dialog, a **Compliance** page, a **Rewards store** with company-funded pool, and a bundled stylesheet. Your job now is the **look, feel and accessibility of those new screens**, then the leftovers from phase 3. Logic stays with Ram.
+> **Mission:** make the screens Ram added since your last merge look and feel as finished as the rest of the app, prove they are accessible, and produce the demo assets for the jury. **You own presentation. Ram owns logic.** Every task below says what to change, how to check it, and what usually goes wrong.
 
-**Start here**
+## 0. Context in two minutes
+
+**Product:** *Mind Your Funds* / *Oxro Labs · Finance Desk*. A gamified finance manager for small Indian businesses: invoices, GST, approvals, cash planner, compliance, rewards. Vanilla JS ES modules, no framework, no build step except one CSS bundle. Data is in Supabase in cloud mode and in the browser in demo mode (this is what you use).
+
+**What is new since your `sumit/ui-phase-2` merge**
+
+| Feature | Where it lives | What you will see |
+|---|---|---|
+| Grouped navigation | `app/nav.js` renders the sidebar, the phone tab bar and the "More" sheet from one list | Sidebar groups with small headings; phone bar = Today, Invoices, Transactions, Approvals, More |
+| Invoices page | `app/views4.js` (`invoices`, `form`, `shareDialog`, `ewayDialog`, `reviewDialog`, `catalog`) | New invoice form, list, Share / E-way / Review dialogs, Items tab, Received tab |
+| Invoice documents | `app/invoice.js` (`taxInvoiceHtml`, print view), `app/pdf.js` (`invoicePdf`, the PDF) | Print window and the downloaded PDF |
+| Add transaction dialog | `entryDialog` in `app/views.js` | Type picker, GST-included toggle, live summary, "Save and add another" |
+| Compliance page | `app/views5.js` (`standards`) + data in `app/standards.js` | Readiness ring, due-date table, standards list |
+| Rewards store | `app/views5.js` (`rewardsPage`, `store`, `funding`) | Tabs Progress / Rewards store / Who pays |
+| Settings additions | `invoiceSettingsCard` in `views4.js` | "Invoice details" card |
+| Styles for all of the above | `app/workflow.css`, `app/apple.css` | See the CSS rules below |
+
+16 pages total now: today, dashboard, invoices, transactions, parties, approvals, planner, compliance (GST returns), standards (Compliance), reports, insights, learn, rewards, audit, team, settings.
+
+## 1. Setup and the five checks
+
 ```bash
 git checkout main && git pull
 git checkout -b sumit/ui-phase-4
-npx serve .                      # http://localhost:3000 → "Continue in demo mode" → Settings → "Load sample data"
-npm run build:css                # REQUIRED after editing any app/*.css (the page loads app/bundle.min.css only)
-node core/selfcheck.js           # selfcheck OK
-python scripts/ui_smoke.py       # UI SMOKE OK
-python scripts/invoice_test.py   # INVOICE OK
-python scripts/txn_test.py       # TXN OK
-python scripts/rewards_test.py   # REWARDS OK
-python scripts/flow_test.py      # FLOW OK
+npx serve .        # http://localhost:3000 → "Continue in demo mode" → Settings → "Load sample data"
 ```
-Read `docs/ONBOARDING.md` (what everything is) and `docs/PITCH.md` (what the jury will see). If your `sumit/ui-phase-3` work is not merged yet, finish tasks 3 to 7 of `prompt-sumit-phase3.md` first (PWA, auth screens, empty states, Practice Lab, screenshots). Task 2 of that file (nav accuracy) is already done by `app/nav.js`; skip it.
+Run these before **every** commit (all must pass; each prints its own OK line):
+```bash
+node core/selfcheck.js            # selfcheck OK
+python scripts/ui_smoke.py        # UI SMOKE OK   (16 pages x 3 roles x light/dark x 375/768/1440, ~4 min)
+python scripts/flow_test.py       # FLOW OK
+python scripts/invoice_test.py    # INVOICE OK
+python scripts/txn_test.py        # TXN OK
+python scripts/rewards_test.py    # REWARDS OK
+```
+Needs `pip install playwright` and Microsoft Edge (tests use `channel='msedge'`). They run in demo mode.
 
-## Boundaries
-**You may edit:** all `app/*.css` (then `npm run build:css`), `index.html`, `app/views4.js` and `app/views5.js` **markup and classes only**, `app/views.js`/`views2.js`/`views3.js` presentation only, the `CSS` string and markup in `app/invoice.js`, layout numbers and colours in `app/pdf.js`, `public/*`, `manifest.webmanifest`, `sw.js`, `offline.html`, `lab.html`, `style.css`, `ui/*`, `docs/screens/*`, new `scripts/a11y_check.py`.
-**Do not edit:** `app/main.js`, `app/repo.js`, `app/standards.js`, `app/gamify.js`, `tax/*`, `workspace/*`, `core/*`, `ledger/*`, `supabase/*`, `netlify/*`, and any `A.` action or `S.` data shape. Need a new action or field? Write the view against what exists and add a line under **Requests between owners** in `TODO.md`.
-Style rules: sentence case, no emoji (icons from `app/icons.js` only), no new dependencies, every colour from a CSS token so light and dark both work.
+**If your phase 3 branch is not merged yet:** finish tasks 3 to 7 of `prompt-sumit-phase3.md` first (PWA/offline, sign-in and error screens, empty/loading states, Practice Lab, screenshots). Skip its task 2 (nav) because `nav.js` replaced it. Task 8 below lists what to carry over.
 
-## Tasks (in order; each has a "done when")
+## 2. Ground rules
 
-### 1. Design review of the new screens (≈2 h)
-Open each at 375, 768, 1440 px in light and dark: Invoices (list, new-invoice form, Share, E-way and Review dialogs), Add transaction dialog (all four types), Compliance, Rewards (Progress, Rewards store, Who pays), sidebar and the phone More sheet. Fix hierarchy, spacing rhythm (use the `--sp-*` scale), alignment, truncated text, contrast, and anything that looks unfinished.
-**Done when:** no horizontal scroll, body text contrast at least 4.5:1, every button and link at least 44 px tall on phone, and 24 before/after screenshots are in `docs/screens/p4/`.
+**You may edit**
+- all `app/*.css`, then run `npm run build:css` (see CSS architecture)
+- `index.html`, `public/*`, `manifest.webmanifest`, `sw.js`, `offline.html`, `lab.html`, `style.css`, `ui/*`
+- `app/views.js`, `views2.js`, `views3.js`, `views4.js`, `views5.js`: **markup, class names, ARIA, copy and layout only**
+- the CSS string and markup in `app/invoice.js`; layout numbers and colours in `app/pdf.js`
+- `docs/screens/**`, new `scripts/a11y_check.py`
 
-### 2. Invoice form on a phone (≈2 h)
-The line-item grid is a 760 px scrolling row. On widths under 640 px turn each line into a stacked card (description full width, then HSN, qty, unit, rate, discount, GST in a 2-column grid) with a clear remove button. Add a sticky bottom bar on phones with the total and the **Issue invoice** button. Put validation messages next to the field instead of only in a toast (classes only: you may add `.field-err` elements in the markup, and read the same `problems()` text).
-**Done when:** a full invoice can be created on a 375 px screen with one thumb, and `python scripts/invoice_test.py` still prints `INVOICE OK` (it runs at desktop width).
+**You must not edit:** `app/main.js`, `app/repo.js`, `app/standards.js`, `app/gamify.js`, `app/bank.js`, `app/recurring.js`, `app/reports.js`, `tax/*`, `workspace/*`, `core/*`, `agents/*`, `ledger/*`, `db/*`, `ai/*`, `netlify/*`, `supabase/*`. Do not change any `A.something(...)` call, any `S.something` shape, validation rules, or computed numbers. If you need a new action or field, build the view with what exists and write one line under **Requests between owners** in `TODO.md` (what, why, which screen).
 
-### 3. Invoice document look: print view and PDF (≈2 h)
-Improve typography, spacing and the totals block in `taxInvoiceHtml` (`app/invoice.js`) and the PDF layout constants in `app/pdf.js`. Keep every field. Keep PDF text in Latin-1 (rupee prints as "Rs.").
-Check the PDF with `python -c "import pymupdf; d=pymupdf.open('x.pdf'); d[0].get_pixmap(dpi=80).save('x.png')"` (download one from the Invoices page).
-**Done when:** a 1-line, a 30-line and a long-notes invoice all look clean on A4, nothing overlaps, and `node core/selfcheck.js` passes.
+**Style rules:** sentence case; no emoji anywhere (icons only, from `app/icons.js`, add a new icon there if truly needed); no new runtime dependencies; every colour from a token so light and dark both work.
 
-### 4. One dialog system (≈2 h)
-Today there are `dialog.dlg`, `.overlay .modal`, `.wide-modal` and the entry dialog, each styled slightly differently. Unify: same radius, padding, header, footer and close button; Esc closes; focus moves in and returns to the opener; on widths under 640 px dialogs become full-width bottom sheets with a drag handle.
-**Done when:** all dialogs share one set of classes, `python scripts/txn_test.py` and `python scripts/invoice_test.py` still pass.
+### CSS architecture (read before touching CSS)
+- The page loads **only `app/bundle.min.css`**. It is built by `python scripts/build_css.py` (`npm run build:css`) from, in this order: `app.css`, `components.css`, `theme-light.generated.css`, `theme.css`, `workflow.css`, `apple.css`. **Later files win.** Put new rules in `workflow.css` (features) or `apple.css` (global look), not in `app.css`.
+- `theme-light.generated.css` is generated by `scripts/gen_light_theme.py`. Never edit it by hand.
+- If you edit CSS and the browser does not change, you forgot to rebuild, or the service worker served the old bundle (hard reload or DevTools > Application > Update on reload).
+- Commit the CSS source **and** `app/bundle.min.css` together.
 
-### 5. Compliance and Rewards presentation (≈2 h)
-- Compliance: the due-date table becomes cards on phones; add a small legend for the status chips; the standards list collapses per standard (use `<details>`), with the "Aligned, not certified" banner always visible at the top.
-- Rewards store: reward cards with an icon, XP cost and a clear disabled reason; a visible pool gauge; friendly empty states for admins and members; a calm success moment (no sound) when a request is approved.
-- Who pays: three equal columns with an icon each, readable at 375 px.
-**Done when:** `python scripts/rewards_test.py` passes, and the three pages look finished at all widths.
+### Tokens (use these, never raw hex)
+Spacing `--sp-1..10` = 4, 8, 12, 16, 20, 24, 32 (`-8`), 40 (`-10`) px. Radius `--r-xs/sm/md/lg/xl/2xl` = 4, 6, 10, 14, 18, 24 px, `--r-full` for pills. Type `--fs-xs/sm/base/md/lg/xl/2xl` = 11, 12, 14.5, 16, 18, 22, 32 px. Colour: `--bg --bg2 --card --card-subtle --card-hover --line --line-subtle --tx --tx-title --mu --acc --acc2 --acc-glow --on-acc --warn --warn-bg --bad --bad-bg --info --info-bg`. Shadows `--sh-sm/md/lg/xl`. Glass `--glass`, overlay `--scrim`. Light and dark values are defined at the top of `apple.css`.
+**Known smell to fix:** `workflow.css` has a few hard-coded colours (for example `#04150d` for text on green, in `.chk-row i.ok` and `.wf-step.is-done .wf-n`). Replace them with `var(--on-acc)`.
 
-### 6. First-run experience (≈1.5 h)
-A new user should know what to do in 10 seconds. Style the **Get started** card (it lives on the Dashboard; also surface it at the top of Today until complete) as a numbered 6-step path with progress, the next step highlighted and a single primary button. Add three short "What is this?" popovers (health score, GST reserve, runway) using `<details>` or `popover` with plain-language text copied from `docs/PITCH.md`.
-**Done when:** a fresh demo user lands on a screen with exactly one obvious next action.
+### Breakpoints used by the app
+375 (phone target), 480, 520 (forms stack), 640 (dialogs become sheets), 768 (tablet), 860 (sidebar becomes tab bar), 900 (two-column grids collapse), 1000, 1100 (top bar compacts), 1440 (desktop target). Do not add new ones unless one of these cannot work.
 
-### 7. Accessibility pass to WCAG 2.2 AA (≈2 h)
-Create `scripts/a11y_check.py`: open every page as admin in light and dark, inject axe-core from `https://cdn.jsdelivr.net/npm/axe-core@4/axe.min.js` (test-time only, not shipped), print violations, exit non-zero on any serious or critical one. Fix what it finds. Also check by hand: focus is never hidden behind the sticky top bar or bottom bar, target size at least 24 px everywhere, visible focus ring on every control, dialogs are announced, reduced-motion respected, 200% zoom works.
-**Done when:** `python scripts/a11y_check.py` prints `A11Y OK`.
+### Things that already bit us once (do not repeat)
+1. **Grid blowout:** a grid child without `min-width: 0` stretches the page. Every new grid child gets `min-width: 0`; use `minmax(0, 1fr)`.
+2. **Replacing a button while it is being clicked:** if a `change`/`blur` handler re-renders a control group, the click that caused the blur lands on a new node and is lost. Never rebuild controls from a blur handler; toggle classes and attributes in place (see `pick()` in `entryDialog`).
+3. **The `hidden` attribute loses to `display:`**. `workflow.css` has a global `[hidden]{display:none!important}`; keep it.
+4. **Global pill buttons.** `apple.css` makes every `button` pill-shaped. Use an explicit `border-radius` for cards-as-buttons (see `.type-btn`).
+5. **The `h()` helper** (`app/util.js`): text children are always text nodes (no HTML injection); keys starting `aria-`/`data-` and `role`, `tabindex`, `list`, `for`, `style` become attributes, everything else becomes a DOM property. `undefined/null/false` props are skipped. Never use `innerHTML` with data.
+6. **Toasts and the storage notice overlap fixed UI.** Test with them visible.
+7. **Money and dates:** never reformat numbers in the view; use `inr()` or the existing formatters.
 
-### 8. Leftovers from phase 3, if still open (≈3 h)
-Install prompt and `offline.html` (and add `app/nav.js`, `app/pdf.js`, `app/views4.js`, `app/views5.js`, `app/standards.js` to the `SHELL` list in `sw.js`); styled sign-in, workspace-setup and database-error screens; empty and loading states on all 16 pages; Practice Lab (`lab.html`) matched to the main app.
+---
 
-### 9. Demo assets for the jury (≈1.5 h)
-Record a clean 90-second screen capture following the demo script in `docs/PITCH.md` (demo mode, sample data loaded, light theme, 1440 px). Save 12 sharp screenshots in `docs/screens/final/` (Today, Dashboard, New invoice, Invoice PDF, Add transaction, Transactions with an invoice link, Cash planner, Compliance, Audit trail, Rewards store, Who pays, phone More sheet). Do not alter data to flatter the numbers.
+## Task 1 — Design review of every new screen (≈3 h)
 
-## Process
-- Branch `sumit/ui-phase-4`; commit per task: `ui: <task> — <what>`; do not merge to `main` (Ram merges).
-- After each task tick it in `TODO.md`, add one line to the **Work Log**, add needs under **Requests between owners**.
-- Run all six checks above before every commit. Never commit `app/bundle.min.css` without running `npm run build:css` first, and always commit it together with the CSS source change.
+**Goal:** find and fix everything that looks unfinished, before polishing individual flows.
 
-## Acceptance checklist
-- [ ] `selfcheck OK`, `UI SMOKE OK`, `INVOICE OK`, `TXN OK`, `REWARDS OK`, `FLOW OK`, `A11Y OK`
-- [ ] No horizontal scroll at 375 / 768 / 1440 px on any page, in light and dark, for admin, finance and viewer
-- [ ] Invoice can be created on a 375 px phone; PDF and print view look clean for short, long and multi-page invoices
-- [ ] One consistent dialog system; bottom sheets on phones
-- [ ] Compliance, Rewards store and Who pays finished at all widths
-- [ ] First-run path has one obvious next action
-- [ ] Offline page, install prompt, styled auth and error screens, Practice Lab aligned (if open from phase 3)
-- [ ] 24 review screenshots in `docs/screens/p4/`, 12 final screenshots and a 90-second recording in `docs/screens/final/`
-- [ ] No edits outside your files; no new runtime dependencies
+**Method (do this literally):**
+1. Open each screen below in light and dark at 375, 768 and 1440 px (9 views each). Use `resize_window` presets or DevTools device toolbar.
+2. For each view write down defects in a table: *screen, width, theme, defect, fix*. Keep it in `docs/screens/p4/REVIEW.md`.
+3. Fix, rebuild CSS, re-screenshot. Save `before-` and `after-` PNGs named `p4/<screen>-<width>-<theme>-before|after.png`.
+
+**Screens:** Invoices list (empty, with rows), New invoice form, Share dialog, E-way dialog, Review dialog (open it by importing a file from `Invoices > Received`), Items tab, Settings > Invoice details, Add transaction dialog (each of Sale, Purchase, Expense, Payroll), Transactions table with an invoice-linked row, Compliance page, Rewards (three tabs), the sidebar expanded and collapsed, the phone tab bar and More sheet.
+
+**Checklist per screen:**
+- Vertical rhythm uses the `--sp-*` scale; cards are separated by `--sp-4`; a card's content padding is consistent.
+- One primary button per view; secondary buttons are visually quieter; destructive actions are not primary.
+- Headings: page title (22 to 32 px), card title (16 to 18 px), label (12 to 13 px, `--mu`). No heading skips a level in the DOM (`h2` page, `h3` cards, `h4` groups).
+- Text never truncates without a `title` or an ellipsis rule; long party names wrap or ellipsise, never push the layout.
+- Numbers are right-aligned in tables and use tabular figures (`font-variant-numeric: tabular-nums`).
+- Disabled controls look disabled and say why (tooltip text or helper line).
+- Contrast: body text at least 4.5:1, large text and UI borders at least 3:1, in both themes. Check `--mu` text on `--card-subtle`, chip text on tinted chip backgrounds, and white-on-green buttons in light mode.
+- Touch targets at least 44 x 44 px on phones (24 x 24 px is the WCAG 2.2 minimum, 44 is our bar).
+
+**Done when:** `REVIEW.md` has no open rows, 24 `p4/*-after.png` exist, no horizontal scroll at any width (`python scripts/ui_smoke.py`).
+
+---
+
+## Task 2 — Invoice form on a phone (≈3 h)
+
+**Files:** `app/views4.js` (`form`, `drawLines`), `app/workflow.css` (`.inv-*`).
+
+**Problem:** `.inv-row` is an 8-column grid with `min-width: 760px`, so on a phone the user scrolls sideways inside a card.
+
+**Spec:**
+1. Under 640 px, each line item becomes a card: description full width, then a 2-column grid of HSN/SAC, Quantity, Unit, Rate, Discount %, GST %. Put a labelled remove button top-right of the card (min 44 px). Hide the `.inv-head` header row.
+2. Every input in a line card needs a visible label on phones (you may add `<label>` wrappers or `aria-label` + a small visible caption; keep the existing `aria-label`s because tests rely on placeholders and labels).
+3. Add a **sticky bottom bar** on phones containing: grand total (from the same summary text, do not recompute), and the **Issue invoice** primary button, above the tab bar and safe-area inset. Draft saving stays in the top bar. The bar must not cover the last form fields: add bottom padding to the form equal to the bar height.
+4. Validation: today `problems()` text appears only in a toast. Add an inline error element under the field it refers to for: customer name, GSTIN, invoice number, due date, each line's description, quantity, rate, HSN. You may add `.field-err` nodes in `views4.js` markup that are filled by the **same** validation messages (`problems()` text is the source; do not change its wording or logic; if you need the field mapping, ask via a TODO request or derive it from the line index in the message).
+5. Keyboard order: Tab goes customer, GSTIN, pincode, address, then lines in reading order, then notes, then buttons. Enter in a line's last input adds a new line (already built, keep it).
+6. Keep the desktop layout unchanged except spacing fixes.
+
+**Edge cases:** 1 line and 30 lines; very long description (300 characters); IGST vs CGST+SGST summary; Bill of supply (no GST column); empty customer.
+
+**Verify:** at 375 px create and issue an invoice using only taps and the on-screen keyboard (use DevTools touch emulation). Then `python scripts/invoice_test.py` must still say `INVOICE OK` (it runs at 1440 px and uses placeholders such as `Customer name`, `15-character GSTIN, blank if unregistered`, `Address`, `Pincode`; do not rename them).
+
+**Done when:** no sideways scroll inside the form at 375 px, sticky bar works, inline errors show, test passes.
+
+---
+
+## Task 3 — Invoice documents: print view and PDF (≈3 h)
+
+**Files:** `app/invoice.js` (`CSS` constant and `taxInvoiceHtml`), `app/pdf.js` (`invoicePdf` layout constants: margins `M`, column widths `cols`, font sizes, colours `GREY`, `HEAD`).
+
+**Rules for the PDF:** it is written by hand with the built-in Helvetica fonts. Text must stay Latin-1, so the rupee sign prints as "Rs." (do not try to embed fonts). Do not change `textWidth`, `wrap`, `Pdf` class or the byte assembly. You may change positions, sizes, spacing, colours and what is bold.
+
+**Spec:**
+1. Visual hierarchy: seller name and document title at the top, document number and dates aligned right; a clear Bill to / Supply details pair; items table with zebra or hairline rows; totals block right-aligned with the grand total emphasised; amount in words; pay-to and notes; signature area.
+2. Table: description column gets the most width; numbers right-aligned; the header row repeats on each page; a row never splits across pages; the totals and signature are never orphaned alone on a page (use the existing `y > H - ...` guards).
+3. Print view (`taxInvoiceHtml`): matches the PDF structure; `@page` A4 with 14 mm margin; `Print / Save as PDF` button hidden when printing; text colours print well in black and white; background colours do not rely on "print backgrounds".
+4. Both: show **CANCELLED** diagonally or as a clear stamp for cancelled invoices, **PAID** stamp for paid ones; do not hide any legal field (supplier GSTIN, buyer GSTIN or "Unregistered", place of supply, reverse charge, HSN/SAC, rate, tax by head, e-way bill number when present).
+
+**Test data to try (create each in demo mode, then Download PDF and open the print view):**
+- 1 line, intra-state (CGST+SGST)
+- 3 lines at 3 GST rates, inter-state (IGST), with discount
+- 30 lines (multi-page)
+- Bill of supply (no tax)
+- very long customer name and address, 400-character notes with line breaks
+- cancelled and paid
+
+**How to check a PDF:** `pip install pymupdf`, then
+```python
+import pymupdf
+d = pymupdf.open("Invoice-XXXX.pdf")
+for i, p in enumerate(d): p.get_pixmap(dpi=90).save(f"page{i}.png")
+print(d[0].get_text())
+```
+Look for overlapping text, clipped numbers, `?` characters where text was lost, and totals that do not match the screen.
+
+**Done when:** all seven samples look clean on A4 in the print view and the PDF, `node core/selfcheck.js` passes (it asserts the PDF structure), and 7 sample PDFs' page-1 PNGs are saved in `docs/screens/p4/pdf/`.
+
+---
+
+## Task 4 — One dialog system (≈3 h)
+
+**Why:** the app currently has four dialog looks: native `<dialog class="dlg">` (entry dialog, import dialog, badge/level), `.overlay > .modal` (auth, lessons, `dialog()` helper in `views4.js` used by Share, E-way, Review and the shortcuts help), and `.wide-modal`.
+
+**Spec:**
+1. One visual spec for all: radius `--r-2xl`, padding `--sp-6` (`--sp-4` on phones), header row with title left and a 44 px close button right, scroll inside the body not the page, footer actions right-aligned, sticky footer when content scrolls, backdrop `--scrim` with a light blur.
+2. Behaviour: Esc closes; clicking the backdrop closes (except during an unsaved entry form: ask or ignore); focus moves into the dialog on open and **returns to the opener on close**; Tab never leaves the dialog (native `<dialog>.showModal()` already does this; for `.overlay` dialogs add a small trap in the shared helper); `aria-modal`, `aria-labelledby` pointing at the title.
+3. Under 640 px every dialog becomes a **bottom sheet**: full width, rounded top corners, max-height 92 vh, a small drag handle bar at the top (visual only), slides up in 200 ms (respect `prefers-reduced-motion`).
+4. Keep every existing class and placeholder that the tests use: `dialog.entry-dialog-modal`, `.wide-modal`, `.callout`, `.type-btn`, `.chips-seg`, `.tax-preview-card`, `.lesson`.
+5. Entry dialog only: keep the sticky footer and the two-column layout on desktop (form left, summary right); on phones the summary collapses into a compact bar above the footer showing the total, tap to expand the full breakdown.
+
+**Verify:** keyboard-only walkthrough of every dialog (open with keyboard, Tab through everything, Esc, focus lands back on the button). Then `python scripts/txn_test.py` and `python scripts/invoice_test.py`.
+
+**Done when:** all dialogs share the same classes and look, sheets work at 375 px, both tests pass.
+
+---
+
+## Task 5 — Compliance, Rewards and "Who pays" presentation (≈3 h)
+
+**Files:** `app/views5.js` (markup/classes only), `app/workflow.css`.
+
+**Compliance page**
+1. Keep the **"Aligned, not certified"** banner at the very top, always visible, never collapsible.
+2. Readiness card: the ring uses `--acc` on `--line`; at under 400 px the ring sits above the checklist. Each check row has a clear icon state (done / not done), the fix hint, and a "Fix" button that is at least 44 px tall.
+3. "Due this month and last month": at 640 px and below, turn the table into cards (duty, applies to, due date, status chip, a large checkbox). Add a one-line legend: Done, Due soon (within 7 days), Overdue, Upcoming.
+4. Standards list: wrap each standard in `<details>` (first one open on desktop, all closed on phones), summary shows the standard name, area and a count like "4 built in, 1 your action". Chip colours: Built in = green tint, Your action = amber tint, Planned = neutral, Not applicable = blue tint; each chip also has text, never colour alone.
+5. Evidence pack and "Re-check integrity" buttons stay together on one row, wrap on phones.
+
+**Rewards store**
+1. Reward cards: icon in a tinted circle, name, one-line description, XP cost chip, and (for admins) a "Company pays ₹X" chip. The button states are **Redeem**, **N XP to go**, **Pool used up this month**, **Paused**; the disabled ones show the reason in the button text (already so) and also as a helper line for screen readers.
+2. Pool gauge: a labelled bar with "₹used of ₹pool" and what is left; colour shifts to `--warn` over 80% and `--bad` at 100%.
+3. Empty states: admin sees "Add your first reward" with the quick-add buttons prominent; a member sees "Your admin has not added rewards yet".
+4. After an admin approves or marks delivered, show a calm toast (no confetti, no sound). The request list shows status chips with icons.
+5. Requests lists: member's own requests on top for members; admins see "Requests to decide" first with the oldest at the top.
+
+**Who pays**
+Three equal columns (stack under 900 px), each with an icon, a heading, a status chip (Free, Your company pays, Sponsor pays), and two short lines. The pool calculator shows three big numbers in one row (stack on phones). The safeguards list uses real list semantics.
+
+**Verify:** `python scripts/rewards_test.py` stays green (it uses `role=tab` names `Rewards store` and `Who pays`, `.lesson` cards, the buttons `Save pool`, `Approve`, `Decline`, `Mark delivered`, and chips `Your company pays`).
+
+**Done when:** three pages look finished at 375, 768, 1440 in both themes and the test passes.
+
+---
+
+## Task 6 — First-run experience (≈2 h)
+
+**Goal:** a brand-new user sees exactly one obvious next action within 10 seconds.
+
+**Files:** `onboarding()` in `app/views.js` (Dashboard "Get started" card), `app/views3.js` (`workflow`, the Today page), CSS.
+
+1. The Get started card has 6 steps: company and GSTIN, invoice details, first invoice, record a bill or expense, monthly goal, first GST return. Present it as a vertical stepper: numbered circles joined by a line, done steps show a check, the **first incomplete step** is expanded with its description and **one primary button**; later steps are muted.
+2. Show the same card at the top of **Today** until all steps are done (read the same data; do not change the step logic. If you need a shared function, request it in `TODO.md`; for now copy the markup, not the logic, by calling the existing `onboarding` export if it is exported, otherwise ask).
+3. Three "What is this?" explainers, each a `<details>` or a `popover` attached to an info icon button (44 px target, `aria-label`): **Health score**, **GST reserve**, **Runway**. Copy the wording from `docs/PITCH.md` ("How the insights are generated"); keep each under 40 words and in plain language.
+4. Empty states for brand-new accounts: Dashboard, Transactions, Invoices, Parties, Approvals, Reports. Each has an icon, one sentence on why it is empty and a single button to the first action.
+
+**Verify:** clear site data, open demo mode: Today shows the stepper with step 1 highlighted and no other competing primary button above the fold at 375 px.
+
+**Done when:** a screenshot of a fresh account at 375 and 1440 px shows one clear primary action; all empty states exist.
+
+---
+
+## Task 7 — Accessibility to WCAG 2.2 AA (≈3 h)
+
+**New file:** `scripts/a11y_check.py`.
+
+1. Use Playwright (Edge) to open every page as admin, in light and dark at 1440 and 375 px. Inject axe-core at test time from `https://cdn.jsdelivr.net/npm/axe-core@4/axe.min.js` (not shipped to users, not in `package.json`). Run `axe.run()` with tags `wcag2a`, `wcag2aa`, `wcag21aa`, `wcag22aa`. Print each violation as `page | theme | width | rule | impact | selector`. Exit non-zero on any **serious** or **critical**; print `A11Y OK` otherwise. Also open the Add transaction dialog, the invoice form and the Share dialog and run axe on them.
+2. Fix everything it finds. Typical issues to expect: low contrast of `--mu` text on tinted backgrounds, missing accessible names on icon buttons, inputs without labels, `aria-selected`/`aria-pressed` used together incorrectly on tabs (tabs should use `aria-selected` only, with `role=tab`/`tablist`/`tabpanel`; keep the test-visible `role=tab` names), duplicate ids, heading order, `aria-current` on nav.
+3. Manual WCAG 2.2 checks (write a checklist in `docs/screens/p4/A11Y.md` with pass/fail and screenshot proof):
+   - **2.4.11 Focus not obscured:** tab through each page; a focused element must never be hidden behind the sticky top bar, the phone tab bar or the new sticky invoice bar. Use `scroll-margin-top`/`scroll-padding-bottom`.
+   - **2.5.8 Target size:** every interactive element at least 24 x 24 px; our bar is 44 on phones.
+   - **3.2.6 Consistent help:** help/support link in the same place on all pages (footer already has legal links; add a "Keyboard shortcuts (?)" link there that triggers the same shortcuts help).
+   - **1.4.10 Reflow:** at 320 px width and at 400% zoom there is no two-direction scrolling.
+   - **1.4.12 Text spacing:** inject `line-height:1.5; letter-spacing:.12em; word-spacing:.16em` and confirm nothing is clipped.
+   - **2.3.3 / prefers-reduced-motion:** all animations stop.
+   - **Screen reader smoke test** (NVDA on Windows or VoiceOver): sign in, open Today, create an invoice, hear field names and errors, close a dialog and hear where focus returns. Note anything confusing.
+4. High-contrast and text-size options in Settings > Appearance must still work on the new screens (check at the largest text size).
+
+**Done when:** `python scripts/a11y_check.py` prints `A11Y OK`; `A11Y.md` has no failing rows.
+
+---
+
+## Task 8 — Leftovers from phase 3 (only if still open) (≈4 h)
+
+- **PWA:** `manifest.webmanifest` with 192/512 icons, a maskable icon, theme colours for light and dark, `screenshots`; an `offline.html` page styled like the app that the service worker serves when a navigation fails; an in-app install button that uses `beforeinstallprompt` and hides itself when installed.
+- **`sw.js` cache list:** add `app/nav.js`, `app/pdf.js`, `app/views4.js`, `app/views5.js`, `app/standards.js` to `SHELL` and bump the cache name (`myf-v6` becomes `myf-v7`). Do not cache anything under `/api/`.
+- **Sign-in, workspace-setup and database-error screens:** styled with the same dialog system; labels, error text next to the field, password show/hide, `autocomplete` attributes, Enter submits, the terms checkbox error is clear.
+- **Empty and loading states on all 16 pages.** Skeleton blocks (CSS only, shimmer off under reduced motion) for the first paint of data-heavy pages.
+- **Practice Lab (`lab.html`, `style.css`, `ui/*`):** match tokens, buttons, cards, typography and both themes of the main app; the nav link back to the app; a keyboard-usable decision card UI.
+- **Lighthouse:** run on `/index.html` (mobile) and save a screenshot of the scores: Performance 90+, Accessibility 95+, Best practices 95+, PWA installable.
+
+---
+
+## Task 9 — Demo assets for the jury (≈2 h)
+
+Follow `docs/PITCH.md` exactly so the pitch and the footage agree.
+
+1. **Recording (90 seconds, 1440 x 900, light theme, demo mode, sample data loaded, sound off):** Today and a reminder, new invoice in another state with two GST rates and IGST, issue with Ctrl+Enter, download the PDF, show the linked transactions, open the e-way file, drag the cash-planner what-if slider, show the Compliance readiness, re-check the audit integrity, show Rewards > Who pays. No mouse hunting: rehearse twice; keep the cursor visible and slow.
+2. **12 final screenshots** in `docs/screens/final/`, named `01-today.png` ... `12-more-sheet.png`: Today, Dashboard, New invoice, Invoice PDF page 1, Add transaction (Sale), Transactions with an invoice link, Cash planner, Compliance, Audit trail with the integrity result, Rewards store, Who pays, phone More sheet. Crisp (device scale factor 2), no toasts, no cursor, no personal data.
+3. **Do not alter the data to flatter the numbers.** Use the built-in sample data only.
+
+---
+
+## Task 10 — Hand-off (≈1 h)
+
+- Tick tasks in `TODO.md`, add a Work Log line per task, list open **Requests between owners**.
+- Update `PROGRESS.md` only in the "UI" rows you changed.
+- Write `docs/screens/p4/NOTES.md`: what you changed, what you deliberately did not, and any bug you found in Ram's logic (with steps to reproduce; do not fix it yourself).
+
+## 3. Process
+- Branch `sumit/ui-phase-4`. One commit per task: `ui: task N — <what>`. Do not merge to `main`; Ram merges.
+- Run the six checks before every commit. If a test fails because you changed a placeholder, label, role name or class that a test reads, change your markup back or tell Ram; **do not edit the tests to pass**.
+- Always commit `app/bundle.min.css` together with the CSS source change.
+- Time budget ≈ 30 hours. If you run short, drop in this order: Task 8 extras, Task 6 popovers, Task 5 animations. Never drop Tasks 1, 2, 4, 7 or 9.
+
+## 4. Report back (paste this at the end)
+```
+Tasks done: 1 2 3 ...            Tasks skipped and why: ...
+Checks: selfcheck OK | UI SMOKE OK | FLOW OK | INVOICE OK | TXN OK | REWARDS OK | A11Y OK
+Lighthouse (mobile): perf __ a11y __ best-practices __ pwa __
+Open requests for Ram: ...       Bugs found in logic: ...
+Assets: docs/screens/p4 (__ files), docs/screens/final (12 + recording)
+```
+
+## 5. Acceptance checklist
+- [ ] All seven checks pass: `selfcheck`, `UI SMOKE`, `FLOW`, `INVOICE`, `TXN`, `REWARDS`, `A11Y`
+- [ ] No horizontal scroll at 320 (forms), 375, 768, 1440 px on any page, light and dark, for admin, finance and viewer
+- [ ] Body text contrast at least 4.5:1 and UI borders at least 3:1 in both themes; no hard-coded hex colours left in `workflow.css`
+- [ ] Invoice can be created, issued and downloaded as PDF on a 375 px phone with taps only
+- [ ] Print view and PDF verified for the 7 sample invoices; no overlap, no lost text, no orphaned totals
+- [ ] One dialog system with bottom sheets on phones, focus returns to the opener
+- [ ] Compliance, Rewards store and Who pays finished at all widths; "Aligned, not certified" always visible
+- [ ] Fresh account shows one obvious next action; all empty states exist
+- [ ] WCAG 2.2 AA manual checklist complete with proof; `A11Y OK`
+- [ ] Offline page, install prompt, styled auth and error screens, Practice Lab aligned (if they were open)
+- [ ] 24 review screenshots + `REVIEW.md` in `docs/screens/p4/`, 12 final screenshots and the 90-second recording in `docs/screens/final/`
+- [ ] No edits outside your files; no new runtime dependencies; tests not edited to pass
