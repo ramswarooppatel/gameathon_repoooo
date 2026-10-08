@@ -97,7 +97,7 @@ try:
         pg.click('#restart'); pg.wait_for_timeout(200); pg.fill('#nick', 'Asha'); pg.fill('#seed', '7')
         check('name and seed inputs work', pg.input_value('#nick') == 'Asha' and pg.input_value('#seed') == '7')
         pg.click('#begin'); pg.wait_for_timeout(600)
-        check('Start quarter begins a fresh run: day 0, ghost reset, no history, no impact, no cards, empty ledger', pg.text_content('#h-day') == '0' and pg.text_content('#h-ghealth') == '100' and pg.text_content('#h-health') == '100' and pg.locator('#prev').is_disabled() and pg.locator('#impact').is_hidden() and pg.locator('.card').count() == 0 and pg.locator('#log li').count() == 0 and pg.locator('#start').is_hidden())
+        check('Start quarter begins a fresh run: day 0, ghost reset, no history, no impact, no cards, empty ledger', pg.text_content('#h-day') == '0' and pg.text_content('#h-ghealth') == pg.text_content('#h-health') and pg.text_content('#h-health').strip().isdigit() and 'lasts about 0 days' not in pg.locator('.tile').nth(1).inner_text() and pg.locator('#prev').is_disabled() and pg.locator('#impact').is_hidden() and pg.locator('.card').count() == 0 and pg.locator('#log li').count() == 0 and pg.locator('#start').is_hidden())
         pg.click('#next'); pg.wait_for_timeout(60); pg.click('#prev'); pg.wait_for_timeout(60)
         check('no history left over from the previous run', pg.locator('#prev').is_disabled() and pg.text_content('#h-day') == '0')
         # ---- play on without answering anything: timeouts show the default consequence, then finish the quarter

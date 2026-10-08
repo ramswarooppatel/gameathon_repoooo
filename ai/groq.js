@@ -4,10 +4,14 @@ const SYS = "You are Mind Your Funds' finance explainer for an Indian small busi
 let warned = false;
 export async function ask(messages, fallback) {
   try {
-    const r = await fetch('/api/groq', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages }), signal: AbortSignal.timeout(9000) });
-    if (!r.ok) { if (!warned) { warned = true; console.warn(r.status === 404 ? '[ai] /api/groq not found: this is a static server. Start the app with `npm run dev` (netlify dev) so the AI proxy runs.' : `[ai] /api/groq answered ${r.status}`); } return fallback; }
+    const r = await fetch('/api/groq', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages }), signal: AbortSignal.timeout(20000) });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({})), why = r.status === 404 ? 'the AI proxy is not running: start the app with npm run dev' : r.status === 503 ? 'GROQ_API_KEY is missing in .env' : r.status === 429 ? 'too many questions, wait a minute'
+        : e.tried ? `this Groq key cannot use: ${e.tried.join(', ')}` : `the AI proxy answered ${r.status}${e.detail ? ': ' + String(e.detail).slice(0, 80) : ''}`;
+      if (!warned) { warned = true; console.warn('[ai] ' + why); } return `${fallback} (${why})`;
+    }
     return (await r.json()).text || fallback;
-  } catch { return fallback; }
+  } catch (x) { return `${fallback} (${x?.name === 'TimeoutError' ? 'the AI took too long to answer' : 'cannot reach the AI proxy: start the app with npm run dev'})`; }
 }
 
 export const explain = (facts, fallback) => ask([{ role: 'system', content: SYS }, { role: 'user', content: facts }], fallback);

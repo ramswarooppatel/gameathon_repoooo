@@ -128,7 +128,8 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 ## AI CFO (Groq)
 | Area | Status |
 |------|--------|
-| Proxy tries `GROQ_MODEL`, then gpt-oss-20b, gpt-oss-120b, qwen3.8-27b, Llama 3.3 70b, Llama 3.1 8b; skips models the account cannot use (404), remembers the one that works, strips reasoning tags, clear error if none | ✅ verified against the live API: your key has no Llama access, gpt-oss answers in about 0.4 s |
+| Model order is now Llama 3.1 8B Instant first (as requested), then gpt-oss-20b, gpt-oss-120b, qwen3.8-27b, Llama 3.3 70B. A model the key cannot use returns 404 and is skipped automatically. Verified today: this key has NO access to llama-3.1-8b-instant (Groq: "does not exist or you do not have access"), so gpt-oss-20b answers until Llama is enabled for the key. When the AI fails the UI now says why (proxy not running, key missing, rate limit, models the key cannot use) instead of only "offline" | ✅ |
+| (earlier) Proxy tries `GROQ_MODEL`, then gpt-oss-20b, gpt-oss-120b, qwen3.8-27b, Llama 3.3 70b, Llama 3.1 8b; skips models the account cannot use (404), remembers the one that works, strips reasoning tags, clear error if none | ✅ verified against the live API: your key has no Llama access, gpt-oss answers in about 0.4 s |
 | Insights prompt built from the company's real books: cash, runway, health, receivables and overdue (count, oldest age, largest-customer share), payables, next-30-day flows, GST payable and credit at risk, late returns, this and last month, 60-day forecast low and first negative date, budgets over, headcount and latest payroll net. No names, GSTINs, invoice lines or employee details | ✅ (`scripts/ai_test.py`, real model, real proxy) |
 | A static server with no `/api/groq` now logs one clear console hint instead of failing silently | ✅ |
 

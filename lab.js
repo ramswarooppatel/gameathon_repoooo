@@ -10,6 +10,7 @@ import { renderHud, renderTrust, renderProgress, toast } from './ui/hud.js';
 import { progress } from './core/progress.js';
 import { renderCards } from './ui/cards.js';
 import { mulberry32 } from './core/rng.js';
+import { computeHealth } from './core/health.js';
 import { snapshot, impact, impactWithoutSnapshot, injectStyles } from './ui/coach.js';
 import { icon } from './app/icons.js';
 
@@ -19,7 +20,7 @@ let g, gh, ledger, last, timer = null, autoOn = false, history = [];      // his
 async function start() {
   stopAuto(); $('end').hidden = true; $('start').hidden = true;
   const seed = +$('seed').value || 42;
-  g = createGame(seed); gh = createGame(seed, { crew: false }); impactBox.hidden = true; history = [];
+  g = createGame(seed); gh = createGame(seed, { crew: false }); computeHealth(g.s); computeHealth(gh.s); impactBox.hidden = true; history = [];     // day 0 already shows the real runway, not 0 days
   ledger = createLedger('fincrew-ledger'); ledger.clear();
   await db.startRun(seed, $('nick').value || 'Captain');
   $('log').textContent = '';
@@ -158,7 +159,7 @@ $('export').onclick = () => {
 };
 $('ask').onclick = async () => { $('a').textContent = '…'; $('a').textContent = await cfo($('q').value, g.s, projectCash(g.s, g.s.day + 14)); };
 
-function render0() { g = createGame(42); gh = createGame(42, { crew: false }); ledger = createLedger('fincrew-ledger'); renderTrust(g.s); render(); }
+function render0() { g = createGame(42); gh = createGame(42, { crew: false }); computeHealth(g.s); computeHealth(gh.s); ledger = createLedger('fincrew-ledger'); renderTrust(g.s); render(); }
 (function loop(t) { if (g) drawScene($('scene').getContext('2d'), g.s, g.cards, t); requestAnimationFrame(loop); })(0);
 injectStyles();
 // Go Back. Start overlay: leave the Lab for the page the Captain came from (history if they came from the app, otherwise the app). Nothing is started or reset.

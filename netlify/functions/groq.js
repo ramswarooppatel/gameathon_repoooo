@@ -2,7 +2,7 @@
 // Models come and go per account, so we try GROQ_MODEL first, then known chat models in order, and remember the one that works.
 const hits = new Map(); // ponytail: in-memory per-instance limiter; use Upstash/Redis if abused
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
-const CANDIDATES = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+const CANDIDATES = ['llama-3.1-8b-instant', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'llama-3.3-70b-versatile'];   // Llama 3.1 8B first; any model the key cannot use (404) is skipped
 let working = null;                                   // last model that answered; skips repeated 404s on warm instances
 const clean = (t) => String(t ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 

@@ -29,6 +29,12 @@ try:
         pg.get_by_placeholder('Ask anything').fill('Can I afford a new hire next month?'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
         pg.wait_for_function("document.querySelectorAll('.msg.ai').length >= 2 && document.querySelectorAll('.msg.ai')[1].textContent.trim() !== '…'", timeout=30000)
         check('a free-text question is answered too', len(pg.locator('.msg.ai').nth(1).inner_text()) > 30)
+        # ---- the Practice Lab's Ask the CFO uses the same proxy
+        lab = ctx.new_page(); lab.goto('http://localhost:3138/lab.html'); lab.wait_for_selector('#begin'); lab.click('#begin'); lab.wait_for_timeout(500)
+        check('New run is visible in the Lab header', lab.locator('#restart').is_visible() and lab.locator('#restart').evaluate("e => getComputedStyle(e).borderTopWidth !== '0px'"))
+        lab.fill('#q', 'make me understand the problem?'); lab.click('#ask'); lab.wait_for_function("document.getElementById('a').textContent.trim() !== '' && document.getElementById('a').textContent.trim() !== '…'", timeout=30000)
+        lab_ans = lab.locator('#a').inner_text(); check('Lab CFO answers with a real model (no offline text)', len(lab_ans) > 30 and 'offline' not in lab_ans.lower() and 'Rule of thumb' not in lab_ans)
+        print('lab answer:', lab_ans[:140].replace('\n', ' '))
         print('answer:', ans[:160].replace('\n', ' '))
         b.close()
 finally:
