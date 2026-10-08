@@ -1,6 +1,6 @@
 import { makeGstin } from '../tax/gst.js';
 
-export const CFG = { days: 90, startCash: 150000, opex: 2500, payroll: 60000, sales: 3000, rate: 18, ownState: '27' };
+export const CFG = { days: 90, startCash: 200000, opex: 2500, payroll: 60000, sales: 3000, rate: 18, ownState: '27' };
 
 export const OWN_GSTIN = makeGstin('27', 'AABCF1234F');
 export const CLIENTS = [

@@ -132,11 +132,21 @@ for (const [cash, first, tight] of [[200000, 'Pay on due date', false], [1000, '
   assert.equal(bc.options[0].label, first); assert.equal(bc.facts.tight, tight); assert.equal(bc.options[bc.defaultOption].label, 'Pay on due date');
 }
 
-// Practice Lab must be playable for the full 90 days whatever the Captain does (answer nothing, always pick the worst option, follow the crew, or no crew at all).
-for (const seed of [1, 7, 42, 99, 123]) for (const mode of ['timeout', 'worst', 'crew', 'ghost']) {
-  const sg = createGame(seed, { crew: mode !== 'ghost' });
-  while (!sg.s.over) { nextDay(sg); if (mode === 'worst') for (const c of [...sg.cards]) decide(sg, c.id, c.options.length - 1); if (mode === 'crew') for (const c of [...sg.cards]) decide(sg, c.id, 0); }
-  assert.equal(sg.s.day, 90, `seed ${seed} ${mode} ended on day ${sg.s.day}`);
+// Prototype requirement: a Practice Lab run must last the full 90 days whatever the Captain does (nothing, always the worst option, always the recommendation,
+// no crew, random options, accept every growth order) and cash must never go negative on the way.
+import { mulberry32 } from './rng.js';
+for (let seed = 1; seed <= 30; seed++) for (const mode of ['timeout', 'worst', 'crew', 'ghost', 'random', 'accept']) {
+  const sg = createGame(seed, { crew: mode !== 'ghost' }), pr = mulberry32(seed * 7 + 1);
+  while (!sg.s.over) {
+    nextDay(sg);
+    for (const c of [...sg.cards]) {
+      if (mode === 'worst') decide(sg, c.id, c.options.length - 1);
+      else if (mode === 'crew') decide(sg, c.id, 0);
+      else if (mode === 'random') decide(sg, c.id, Math.floor(pr() * c.options.length));
+      else if (mode === 'accept') { const i = c.options.findIndex((o) => o.effect.type === 'accept'); decide(sg, c.id, i >= 0 ? i : Math.floor(pr() * c.options.length)); }
+    }
+  }
+  assert.equal(sg.s.day, 90, `seed ${seed} ${mode} ended on day ${sg.s.day}`); assert.ok(sg.s.stats.minCash >= 0, `seed ${seed} ${mode} cash went negative`);
 }
 
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.

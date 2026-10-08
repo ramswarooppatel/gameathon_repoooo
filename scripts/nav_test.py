@@ -67,7 +67,7 @@ try:
         check('opened directly: Go Back goes to the Finance Desk', lab0.url.startswith(BASE + 'index.html')); lab0.close()
         lab = ctx.new_page(); lerr = []; lab.on('pageerror', lambda e: lerr.append(str(e))); lab.goto(BASE + 'lab.html'); lab.wait_for_selector('#begin')
         check('lab header keeps its Finance Desk link', lab.locator('a.back-link').count() == 1 and lab.locator('a.back-link').get_attribute('href') == 'index.html')
-        lab.wait_for_function("document.getElementById('h-cash').textContent.includes('1,50,000')")
+        lab.wait_for_function("document.getElementById('h-cash').textContent.includes('2,00,000')")
         lab.click('#begin'); lab.wait_for_timeout(500)
         lab.click('#next'); lab.click('#next'); lab.click('#next'); lab.wait_for_timeout(100)
         check('the lab runs and keeps its state', lab.text_content('#h-day') == '3' and not lab.locator('#prev').is_disabled())
