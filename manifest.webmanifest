@@ -25,18 +25,33 @@
   ],
   "screenshots": [
     {
-      "src": "public/logo.png",
-      "sizes": "512x512",
+      "src": "public/screen-desktop-1.png",
+      "sizes": "1440x900",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Oxro Labs Finance Desk Desktop Dashboard"
+      "label": "Oxro Labs Finance Desk Desktop Overview"
     },
     {
-      "src": "public/icon-512.png",
-      "sizes": "512x512",
+      "src": "public/screen-desktop-2.png",
+      "sizes": "1440x900",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Transactions Management & GST Tax Split"
+    },
+    {
+      "src": "public/screen-mobile-1.png",
+      "sizes": "375x667",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Oxro Labs Finance Desk Mobile Dashboard"
+      "label": "Mobile Dashboard & Business Cards"
+    },
+    {
+      "src": "public/screen-mobile-2.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Gamification, Streaks & Team Rewards"
     }
   ]
 }
+
