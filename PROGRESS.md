@@ -101,6 +101,16 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Access: admin and finance only (RLS); viewers see a restricted notice | ✅ |
 | Not built | Form 16 / 24Q, leave management, reimbursement claims workflow, loans schedule, gratuity and bonus acts, automatic bank payments, salary revisions history, multi-state PT per employee beyond the table |
 
+## Practice Lab coach (`ui/coach.js`, `ui/cards.js`, `lab.js`)
+| Area | Status |
+|------|--------|
+| Cards tell a short story: What is happening, Why it matters, from facts the agents attach (`topic`, `facts`), plus the crew member's skill | ✅ |
+| Recommended option explained from the card's numbers; label stays on `options[0]` (see note), and "If you do not decide in N days: <default>" uses `defaultOption` | ✅ |
+| Decision impact from real engine state (payment day moved, fee paid, fraud blocked or lost, cash, business health before and after) | ✅ |
+| Existing lessons reused: "What you learned" is the lesson's own takeaway; "Open lesson" goes to Learn and remembers the lesson id | ✅ opening that exact lesson in Learn needs a small hook in `views3.js` (request in TODO.md) |
+| Ghost Twin reveal at the end: same business, same events, side-by-side health, cash, lowest cash, missed obligations, penalties, fraud; verdict is honest if the twin wins | ✅ (`scripts/lab_test.py`) |
+| Note | `defaultOption` is what the engine applies when a card expires (for the fraud card it is "Pay anyway"), so it is NOT the recommendation. Treasurer's big-bill card always recommends "Negotiate +10 days" even when cash is fine; the coach says so honestly. Reordering that card's options is a possible follow-up. |
+
 ## Seed data
 `supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).
 

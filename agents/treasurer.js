@@ -7,7 +7,9 @@ export function treasurer(g, events) {
   for (const e of events.filter((x) => x.type === 'big_expense')) {
     const b = s.payables.find((p) => p.id === e.payload.billId);
     cards.push(makeCard(g, {
-      agent: 'treasurer', eventId: e.id, title: `Big bill ${inr(b.amt)} from ${b.vendor} due day ${b.dueDay}`,
+      agent: 'treasurer', eventId: e.id, topic: 'big_bill',
+      facts: { billId: b.id, vendor: b.vendor, amt: b.amt, dueDay: b.dueDay, itc: b.amt - b.taxable, proj: projectCash(s, b.dueDay), payrollDay: s.payroll.nextDay, gstDay: s.gst.nextDue },
+      title: `Big bill ${inr(b.amt)} from ${b.vendor} due day ${b.dueDay}`,
       why: [`ITC available ${inr(b.amt - b.taxable)}`, `Projected cash at due date ${inr(projectCash(s, b.dueDay))}`],
       options: [
         opt('Negotiate +10 days (2% fee)', b.amt * 0.02, { type: 'delayBill', billId: b.id }),
@@ -29,7 +31,9 @@ export function treasurer(g, events) {
     if (bill) options.push(opt(`Delay ${bill.vendor} bill 10 days (2% fee)`, bill.amt * 0.02, { type: 'delayBill', billId: bill.id }));
     options.push(opt('Do nothing', 0, { type: 'none' }, 'high'));
     cards.push(makeCard(g, {
-      agent: 'treasurer', urgent: true, title: `Cash gap before ${d.n} on day ${d.day}`,
+      agent: 'treasurer', urgent: true, topic: d.n === 'Payroll' ? 'cash_gap_payroll' : 'cash_gap_gst',
+      facts: { obligation: d.n, day: d.day, proj, gstDue, topClient: inv?.client, topAmt: inv?.amt, billVendor: bill?.vendor },
+      title: `Cash gap before ${d.n} on day ${d.day}`,
       why: [`Projected cash on day ${d.day}: ${inr(proj)}`, `GST payable now ${inr(gstDue)}`, 'Late GST attracts 18% p.a. interest + penalty'], options,
     }));
   }
