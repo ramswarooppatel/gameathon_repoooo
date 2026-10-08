@@ -1,4 +1,4 @@
-// Company-workspace pages: Parties, Approvals, Reports, Team.
+// Company-workspace pages: Parties, Approvals, Reports, Team, Styleguide.
 import { h, inr, today, toast } from './util.js';
 import { validGstin } from '../tax/gst.js';
 import { gstFor, prevMonth } from '../workspace/calc.js';
@@ -76,4 +76,115 @@ export function team(S, A) {
         S.repo.org.allowed_domain && h('p', { class: 'small mu' }, `Only @${S.repo.org.allowed_domain} email addresses can join.`)),
       card('Approval policy', h('p', { class: 'mu' }, 'Spend entered by non-admins above this amount (incl. GST) waits for admin approval.'), h('div', { class: 'row' }, lim, h('button', { class: 'pri', disabled: !adm, onclick: () => A.saveProfile({ approval_limit: +lim.value || 0 }) }, 'Save limit')),
         demo && h('div', { class: 'al med' }, h('span', {}, 'Demo: switch role to test permissions'), h('select', { onchange: (e) => A.demoRole(e.target.value) }, ...['admin', 'finance', 'viewer'].map((r) => h('option', { value: r, selected: r === S.repo.role }, r)))))));
+}
+
+// ---------------------------------------------------------------- Styleguide (#styleguide)
+export function styleguide() {
+  const swatch = (name, color) => h('div', { style: 'text-align:center;min-width:68px' },
+    h('div', { style: `width:48px;height:48px;background:${color};border-radius:var(--r-md);border:1px solid var(--line);margin:0 auto 4px` }),
+    h('small', { class: 'mu' }, name)
+  );
+
+  return h('div', { class: 'stack' },
+    h('div', { class: 'row' },
+      h('h2', { style: 'margin:0' }, 'Oxro Labs Design System'),
+      h('span', { class: 'pill info' }, '#styleguide')
+    ),
+
+    card('Color Tokens & Scales',
+      h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' },
+        swatch('Accent', 'var(--acc)'),
+        swatch('Accent 2', 'var(--acc2)'),
+        swatch('Warning', 'var(--warn)'),
+        swatch('Danger', 'var(--bad)'),
+        swatch('Info', 'var(--info)'),
+        swatch('Muted', 'var(--mu)'),
+        swatch('Card', 'var(--card)'),
+        swatch('Line', 'var(--line)'),
+        swatch('Sidebar', 'var(--bg-sidebar)')
+      )
+    ),
+
+    h('div', { class: 'grid2' },
+      card('Buttons & Variants',
+        h('div', { class: 'acts', style: 'align-items:center;gap:8px' },
+          h('button', { class: 'pri' }, 'Primary'),
+          h('button', { class: 'sec' }, 'Secondary'),
+          h('button', { class: 'ghost' }, 'Ghost'),
+          h('button', { class: 'danger' }, 'Danger'),
+          h('button', { class: 'pri sm' }, 'Small'),
+          h('button', { class: 'sec lg' }, 'Large'),
+          h('button', { class: 'pri is-loading' }, 'Loading')
+        )
+      ),
+
+      card('Tags & Status Pills',
+        h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' },
+          h('span', { class: 'tag' }, 'Default Tag'),
+          h('span', { class: 'tag paid' }, 'Paid (Active)'),
+          h('span', { class: 'tag over' }, 'Overdue'),
+          h('span', { class: 'pill' }, 'Level 4'),
+          h('span', { class: 'pill warn' }, 'Pending Admin'),
+          h('span', { class: 'pill bad' }, 'Blocked')
+        )
+      )
+    ),
+
+    card('Form Controls & Validation States',
+      h('div', { class: 'form' },
+        h('label', {}, 'Text Input',
+          h('input', { type: 'text', placeholder: 'Vendor or client name' }),
+          h('span', { class: 'input-helper' }, 'Helper text for user context')
+        ),
+        h('label', {}, 'Select Option',
+          h('select', {},
+            h('option', { value: 'sale' }, 'Sale (Invoice)'),
+            h('option', { value: 'spend' }, 'Expense (Spend)')
+          )
+        ),
+        h('label', { class: 'has-error' }, 'Error State Field',
+          h('input', { type: 'text', value: '29ABCDE1234F1Z', class: 'error' }),
+          h('span', { class: 'error-text' }, 'Invalid GSTIN checksum')
+        ),
+        h('label', {}, 'Currency Input (Mono)',
+          h('input', { class: 'amt mono', type: 'text', value: '₹45,000' })
+        ),
+        h('label', { class: 'chk full' },
+          h('input', { type: 'checkbox', checked: true }),
+          'ITC eligible input credit claim'
+        )
+      )
+    ),
+
+    card('Tables (Sticky Header, Zebra Hover)',
+      table(['Invoice #', 'Party', 'Status', 'Total'], [
+        h('tr', {}, td('INV-2026-001'), td('Acme Systems'), td(h('span', { class: 'tag paid' }, 'Paid')), td(inr(25000), true)),
+        h('tr', {}, td('INV-2026-002'), td('Nova Technologies'), td(h('span', { class: 'tag over' }, 'Overdue')), td(inr(12800), true)),
+        h('tr', {}, td('INV-2026-003'), td('Vanguard Media'), td(h('span', { class: 'tag' }, 'Pending')), td(inr(6400), true))
+      ], [3])
+    ),
+
+    h('div', { class: 'grid2' },
+      card('Skeletons & Loaders',
+        h('div', { class: 'stack' },
+          h('div', { class: 'skeleton skeleton-title' }),
+          h('div', { class: 'skeleton skeleton-text' }),
+          h('div', { class: 'skeleton skeleton-text', style: 'width:70%' }),
+          h('div', { class: 'skeleton skeleton-kpi' })
+        )
+      ),
+
+      card('Empty State Pattern',
+        h('div', { class: 'empty-state' },
+          h('svg', { viewBox: '0 0 24 24', fill: 'none', 'stroke-width': '2' },
+            h('path', { d: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z' }),
+            h('polyline', { points: '13 2 13 9 20 9' })
+          ),
+          h('h4', {}, 'No Transactions Found'),
+          h('p', {}, 'Add your first invoice or import sample data from Settings to populate this table.'),
+          h('button', { class: 'pri sm' }, 'Add Entry')
+        )
+      )
+    )
+  );
 }
