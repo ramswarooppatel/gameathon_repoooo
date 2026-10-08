@@ -6,6 +6,14 @@
 
 **Product:** *Mind Your Funds* / *Oxro Labs · Finance Desk*. A gamified finance manager for small Indian businesses: invoices, GST, approvals, cash planner, compliance, rewards. Vanilla JS ES modules, no framework, no build step except one CSS bundle. Data is in Supabase in cloud mode and in the browser in demo mode (this is what you use).
 
+**Your phase 3 is merged.** Ram merged `origin/sumit/ui-phase-3` into `main` (merge commit `754f9d7`). It brought in your offline page, manifest and screenshots, auth/empty/loading states, demo-mode banner, Practice Lab restyle and the 14 screenshots. Conflicts were resolved like this, so know what changed under you:
+- `index.html`: kept the new head (bundled CSS, early theme script) and your meta tags; the sidebar, phone tab bar and More sheet are now **empty containers filled by `app/nav.js`**, so the hard-coded nav markup you wrote is gone. Your inline script (breadcrumb, demo banner observer, role-pill observer) is still there.
+- `app/app.css`: your +310 lines were applied on top of `main`.
+- `sw.js`: kept the stale-while-revalidate worker and added your offline fallback and precache of `offline.html`, `manifest.webmanifest`, the icons.
+- `app/views2.js`: kept your empty states, but the `✕` glyph became `icon('x')` (no glyphs or emoji in the app).
+- `lab.html`: kept your restyle with the small logo (`public/logo-64.png`) and no `▸` glyph.
+- `scripts/ui_smoke.py`: Ram's version (it covers 16 pages x 3 roles x 2 themes x 3 widths plus static pages) replaced yours.
+
 **What is new since your `sumit/ui-phase-2` merge**
 
 | Feature | Where it lives | What you will see |
@@ -28,7 +36,7 @@ git checkout main && git pull
 git checkout -b sumit/ui-phase-4
 npx serve .        # http://localhost:3000 → "Continue in demo mode" → Settings → "Load sample data"
 ```
-Run these before **every** commit (all must pass; each prints its own OK line):
+Run these before **every** commit (Ram maintains the test scripts; you only run them) (all must pass; each prints its own OK line):
 ```bash
 node core/selfcheck.js            # selfcheck OK
 python scripts/ui_smoke.py        # UI SMOKE OK   (16 pages x 3 roles x light/dark x 375/768/1440, ~4 min)
@@ -39,30 +47,34 @@ python scripts/rewards_test.py    # REWARDS OK
 ```
 Needs `pip install playwright` and Microsoft Edge (tests use `channel='msedge'`). They run in demo mode.
 
-**If your phase 3 branch is not merged yet:** finish tasks 3 to 7 of `prompt-sumit-phase3.md` first (PWA/offline, sign-in and error screens, empty/loading states, Practice Lab, screenshots). Skip its task 2 (nav) because `nav.js` replaced it. Task 8 below lists what to carry over.
-
 ## 2. Ground rules
 
-**You may edit**
-- all `app/*.css`, then run `npm run build:css` (see CSS architecture)
-- `index.html`, `public/*`, `manifest.webmanifest`, `sw.js`, `offline.html`, `lab.html`, `style.css`, `ui/*`
-- `app/views.js`, `views2.js`, `views3.js`, `views4.js`, `views5.js`: **markup, class names, ARIA, copy and layout only**
-- the CSS string and markup in `app/invoice.js`; layout numbers and colours in `app/pdf.js`
-- `docs/screens/**`, new `scripts/a11y_check.py`
+### Ownership contract (this is what keeps you and Ram from colliding)
 
-**You must not edit:** `app/main.js`, `app/repo.js`, `app/standards.js`, `app/gamify.js`, `app/bank.js`, `app/recurring.js`, `app/reports.js`, `tax/*`, `workspace/*`, `core/*`, `agents/*`, `ledger/*`, `db/*`, `ai/*`, `netlify/*`, `supabase/*`. Do not change any `A.something(...)` call, any `S.something` shape, validation rules, or computed numbers. If you need a new action or field, build the view with what exists and write one line under **Requests between owners** in `TODO.md` (what, why, which screen).
+Phase 4 runs in parallel. To make merge conflicts impossible, **every file has exactly one owner for the whole phase**. Never edit a file you do not own; ask instead.
 
-**Style rules:** sentence case; no emoji anywhere (icons only, from `app/icons.js`, add a new icon there if truly needed); no new runtime dependencies; every colour from a token so light and dark both work.
+| Owner | Files |
+|---|---|
+| **Sumit (you)** | **All CSS:** `app/app.css`, `components.css`, `theme.css`, `workflow.css`, `apple.css`, new **`app/ui4.css`** (built last, put new rules here), and the generated `app/bundle.min.css`. **All views:** `app/views.js`, `views2.js`, `views3.js`, `views4.js`, `views5.js` (markup, class names, ARIA, copy, layout only). **Chrome:** `index.html`, `app/nav.js`, `app/palette.js` (markup and copy only), `app/icons.js`, `app/extras.js` (presentation only), `app/fx.js`. **Documents:** `app/invoice.js` (print view), layout constants of `app/pdf.js`. **Shell and assets:** `sw.js`, `offline.html`, `manifest.webmanifest`, `lab.html`, `style.css`, `ui/*`, `public/*`, `docs/screens/**`, new `scripts/a11y_check.py`, `scripts/capture_screens.py`. |
+| **Ram** | `app/main.js`, `app/repo.js`, `app/standards.js`, `app/gamify.js`, `app/lessons.js`, `app/bank.js`, `app/recurring.js`, `app/reports.js`, `app/util.js`, `tax/*`, `workspace/*`, `core/*`, `agents/*`, `ledger/*`, `db/*`, `ai/*`, `netlify/*`, `supabase/**`, `scripts/*_test.py`, `scripts/ui_smoke.py`, `scripts/build_css.py`, `scripts/gen_*.py`, `config.js`, `package.json`, `PROGRESS.md`, `NEXT_STEPS.md`, `docs/*.md` except yours. Ram will **not** touch any file in your row: no CSS, no view, no `index.html`. |
+| **Shared, append-only** | `TODO.md`: add Work Log lines at the bottom and requests under **Requests between owners**. Never rewrite someone else's lines. |
+
+**Contracts you must not change (Ram's tests and logic read them):** the `A.*` action names and arguments, the `S.*` state shape, the placeholders, button names, roles and class names the tests use (`Customer name`, `15-character GSTIN, blank if unregistered`, `Address`, `Pincode`, `Continue in demo mode`, `+ Add transaction`, `New invoice`, `Create invoice`, `Save and add another`, `Download PDF`/`PDF`, `Entries`, `E-way`, `Share`, `Paid`, `Rewards store`, `Who pays`, `Save pool`, `Approve`, `Decline`, `Mark delivered`, `.inv-form`, `.inv-row`, `.inv-totals`, `.wide-modal`, `.entry-dialog-modal`, `.type-btn`, `.chips-seg`, `.callout`, `.tax-preview-card`, `.lesson`, `.chk-row`, `.std-row`, `.nav-group`, `.drawer-sec`, `.drawer-item`, `.mb-tab`, `#mb-more-btn`, `#top-page-name`, `#desktop-nav a`, `.tx-row`, `button.linklike`, `.del-btn`). If a redesign needs one renamed, add the new name **and keep the old one** on the element.
+
+**Requests:** need a new action, a new field, a bug fixed in logic, or a data shape changed? Do not touch Ram's files. Append under **Requests between owners** in `TODO.md`: `- [Sumit → Ram] <screen> needs <what> because <why> (<date>)`. Build the view against what exists, behind a feature check (`typeof A.x === 'function'`), and continue. Ram answers by adding it and ticking the line; then you wire it.
+**What Ram is doing in parallel (do not build UI for these until a request arrives from Ram):** ledger v2 with signed entries and published hashes, server-side XP, paging and date filters for large companies, applying and testing the Supabase migrations, real reminder sending. When one lands Ram will append `- [Ram → Sumit] <screen> now has <field/action>` so you can add its UI.
+
+**Style rules:** sentence case; no emoji or glyph icons anywhere (icons only, from `app/icons.js`; add a new icon there if truly needed); no new runtime dependencies; every colour from a token so light and dark both work.
 
 ### CSS architecture (read before touching CSS)
-- The page loads **only `app/bundle.min.css`**. It is built by `python scripts/build_css.py` (`npm run build:css`) from, in this order: `app.css`, `components.css`, `theme-light.generated.css`, `theme.css`, `workflow.css`, `apple.css`. **Later files win.** Put new rules in `workflow.css` (features) or `apple.css` (global look), not in `app.css`.
+- The page loads **only `app/bundle.min.css`**. It is built by `python scripts/build_css.py` (`npm run build:css`) from, in this order: `app.css`, `components.css`, `theme-light.generated.css`, `theme.css`, `workflow.css`, `apple.css`, `ui4.css`. **Later files win.** Change an existing rule in place in the file that owns it; put every **new** rule or override in `ui4.css`.
 - `theme-light.generated.css` is generated by `scripts/gen_light_theme.py`. Never edit it by hand.
 - If you edit CSS and the browser does not change, you forgot to rebuild, or the service worker served the old bundle (hard reload or DevTools > Application > Update on reload).
 - Commit the CSS source **and** `app/bundle.min.css` together.
 
 ### Tokens (use these, never raw hex)
 Spacing `--sp-1..10` = 4, 8, 12, 16, 20, 24, 32 (`-8`), 40 (`-10`) px. Radius `--r-xs/sm/md/lg/xl/2xl` = 4, 6, 10, 14, 18, 24 px, `--r-full` for pills. Type `--fs-xs/sm/base/md/lg/xl/2xl` = 11, 12, 14.5, 16, 18, 22, 32 px. Colour: `--bg --bg2 --card --card-subtle --card-hover --line --line-subtle --tx --tx-title --mu --acc --acc2 --acc-glow --on-acc --warn --warn-bg --bad --bad-bg --info --info-bg`. Shadows `--sh-sm/md/lg/xl`. Glass `--glass`, overlay `--scrim`. Light and dark values are defined at the top of `apple.css`.
-**Known smell to fix:** `workflow.css` has a few hard-coded colours (for example `#04150d` for text on green, in `.chk-row i.ok` and `.wf-step.is-done .wf-n`). Replace them with `var(--on-acc)`.
+**Known smell to fix (yours now):** `workflow.css` has a few hard-coded colours (for example `#04150d` for text on green, in `.chk-row i.ok` and `.wf-step.is-done .wf-n`). Replace them with `var(--on-acc)`.
 
 ### Breakpoints used by the app
 375 (phone target), 480, 520 (forms stack), 640 (dialogs become sheets), 768 (tablet), 860 (sidebar becomes tab bar), 900 (two-column grids collapse), 1000, 1100 (top bar compacts), 1440 (desktop target). Do not add new ones unless one of these cannot work.
@@ -105,7 +117,7 @@ Spacing `--sp-1..10` = 4, 8, 12, 16, 20, 24, 32 (`-8`), 40 (`-10`) px. Radius `-
 
 ## Task 2 — Invoice form on a phone (≈3 h)
 
-**Files:** `app/views4.js` (`form`, `drawLines`), `app/workflow.css` (`.inv-*`).
+**Files:** `app/views4.js` (`form`, `drawLines`), `app/workflow.css` (`.inv-*`) and `app/ui4.css`.
 
 **Problem:** `.inv-row` is an 8-column grid with `min-width: 760px`, so on a phone the user scrolls sideways inside a card.
 
@@ -209,7 +221,7 @@ Three equal columns (stack under 900 px), each with an icon, a heading, a status
 **Files:** `onboarding()` in `app/views.js` (Dashboard "Get started" card), `app/views3.js` (`workflow`, the Today page), CSS.
 
 1. The Get started card has 6 steps: company and GSTIN, invoice details, first invoice, record a bill or expense, monthly goal, first GST return. Present it as a vertical stepper: numbered circles joined by a line, done steps show a check, the **first incomplete step** is expanded with its description and **one primary button**; later steps are muted.
-2. Show the same card at the top of **Today** until all steps are done (read the same data; do not change the step logic. If you need a shared function, request it in `TODO.md`; for now copy the markup, not the logic, by calling the existing `onboarding` export if it is exported, otherwise ask).
+2. Show the same card at the top of **Today** until all steps are done. You own `views.js` and `views3.js`, so export `onboarding` from `views.js` and call it from the Today view; do not change the step conditions (they read `S.profile`, `S.invoices`, `S.entries`, `S.filings`).
 3. Three "What is this?" explainers, each a `<details>` or a `popover` attached to an info icon button (44 px target, `aria-label`): **Health score**, **GST reserve**, **Runway**. Copy the wording from `docs/PITCH.md` ("How the insights are generated"); keep each under 40 words and in plain language.
 4. Empty states for brand-new accounts: Dashboard, Transactions, Invoices, Parties, Approvals, Reports. Each has an icon, one sentence on why it is empty and a single button to the first action.
 
@@ -239,14 +251,19 @@ Three equal columns (stack under 900 px), each with an icon, a heading, a status
 
 ---
 
-## Task 8 — Leftovers from phase 3 (only if still open) (≈4 h)
+## Task 8 — Make merged phase 3 and the new UI agree (≈3 h)
 
-- **PWA:** `manifest.webmanifest` with 192/512 icons, a maskable icon, theme colours for light and dark, `screenshots`; an `offline.html` page styled like the app that the service worker serves when a navigation fails; an in-app install button that uses `beforeinstallprompt` and hides itself when installed.
-- **`sw.js` cache list:** add `app/nav.js`, `app/pdf.js`, `app/views4.js`, `app/views5.js`, `app/standards.js` to `SHELL` and bump the cache name (`myf-v6` becomes `myf-v7`). Do not cache anything under `/api/`.
-- **Sign-in, workspace-setup and database-error screens:** styled with the same dialog system; labels, error text next to the field, password show/hide, `autocomplete` attributes, Enter submits, the terms checkbox error is clear.
-- **Empty and loading states on all 16 pages.** Skeleton blocks (CSS only, shimmer off under reduced motion) for the first paint of data-heavy pages.
-- **Practice Lab (`lab.html`, `style.css`, `ui/*`):** match tokens, buttons, cards, typography and both themes of the main app; the nav link back to the app; a keyboard-usable decision card UI.
-- **Lighthouse:** run on `/index.html` (mobile) and save a screenshot of the scores: Performance 90+, Accessibility 95+, Best practices 95+, PWA installable.
+Your phase 3 was built against the old navigation and old pages; Ram's merge kept both, so some things now overlap. Review and fix (all in your files):
+
+1. **`index.html` inline script vs `app/nav.js`:** the inline script still has an old `PAGE_NAMES` map (no `invoices`, `standards`, old labels like "Team rewards"), toggles `.on` on `.mb-tab` and `.drawer-item`, and filters `[data-role]`. `nav.js` now does the title, `.on`, `aria-current` and the sheet. Remove the duplicated parts from the inline script (keep the demo banner, role pill and org-name observers). Verify: the breadcrumb shows "Compliance", "Invoices", "GST returns" correctly; `python scripts/rewards_test.py` stays green (it asserts `#top-page-name`).
+2. **Role handling:** the `[data-role="admin"]` filter must work for items that `nav.js` creates (Team & access) in the sidebar and in the More sheet, for admin, finance and viewer, after a role switch and after reload.
+3. **Empty and loading states for the 5 new pages** (Invoices, Items tab, Received tab, Compliance, Rewards store) in the same style as your 11 existing ones; use `icon()` from `app/icons.js` rather than inline SVG paths in new code, and migrate your older inline-SVG empty states to the same helper when you touch them.
+4. **Skeletons:** show them on first paint for the data-heavy pages (Dashboard, Transactions, Invoices, Reports) and make sure they disappear on render and never flash on later re-renders; respect `prefers-reduced-motion`.
+5. **PWA:** the manifest `screenshots` and `public/screen-*.png` show the old UI. Regenerate them with `scripts/capture_screens.py` after your redesign (Task 9). `offline.html` must use the same tokens and logo as the app. Bump `CACHE` in `sw.js` (`myf-v7` becomes `myf-v8`) when you change shell files. Install prompt: if there is no in-app install button yet, add one (uses `beforeinstallprompt`, hides itself when installed).
+6. **Practice Lab:** confirm `lab.html` has the light/dark theme toggle honouring `localStorage['myf-theme']`, and that the "Finance Desk" link and the sidebar "Practice lab" link both work.
+7. **Lighthouse (mobile) on `/index.html`:** target Performance 90+, Accessibility 95+, Best practices 95+, installable. Save the screenshot to `docs/lighthouse.png` (replace the old one).
+
+**Done when:** no duplicated nav logic, all 16 pages have an empty state, roles behave, the Lighthouse targets are met or the gap is explained in `docs/screens/p4/NOTES.md`.
 
 ---
 
@@ -266,11 +283,15 @@ Follow `docs/PITCH.md` exactly so the pitch and the footage agree.
 - Update `PROGRESS.md` only in the "UI" rows you changed.
 - Write `docs/screens/p4/NOTES.md`: what you changed, what you deliberately did not, and any bug you found in Ram's logic (with steps to reproduce; do not fix it yourself).
 
-## 3. Process
-- Branch `sumit/ui-phase-4`. One commit per task: `ui: task N — <what>`. Do not merge to `main`; Ram merges.
-- Run the six checks before every commit. If a test fails because you changed a placeholder, label, role name or class that a test reads, change your markup back or tell Ram; **do not edit the tests to pass**.
-- Always commit `app/bundle.min.css` together with the CSS source change.
-- Time budget ≈ 30 hours. If you run short, drop in this order: Task 8 extras, Task 6 popovers, Task 5 animations. Never drop Tasks 1, 2, 4, 7 or 9.
+## 3. Process (how we stay conflict-free)
+- Branch `sumit/ui-phase-4` from the current `main`. Push after **every** task.
+- **Every morning and before each push:** `git fetch origin && git rebase origin/main`. Because we own disjoint files this rebases cleanly. If git reports a conflict in a file you own, stop and ask Ram; if it is in a file Ram owns, you edited the wrong file: undo your change to it.
+- Ram merges your branch into `main` after every two or three tasks and tells you in `TODO.md` ("merged up to task N"). After that, rebase again.
+- **`app/bundle.min.css` is generated.** Never merge it by hand. If it ever conflicts: `git checkout --ours app/bundle.min.css && npm run build:css && git add app/bundle.min.css`. Commit it together with the CSS source change.
+- One commit per task: `ui: task N — <what>`. Do not merge to `main` yourself.
+- Run the six checks before every commit. If a test fails because you changed something it reads (see Contracts), change your markup back or ask Ram; **never edit a test to make it pass**.
+- Update `TODO.md` after each task (tick, Work Log line, requests).
+- Time budget about 30 hours. If you run short drop, in this order: Task 8 items 4 to 6, Task 6 popovers, Task 5 polish. Never drop Tasks 1, 2, 4, 7 or 9.
 
 ## 4. Report back (paste this at the end)
 ```
@@ -291,6 +312,6 @@ Assets: docs/screens/p4 (__ files), docs/screens/final (12 + recording)
 - [ ] Compliance, Rewards store and Who pays finished at all widths; "Aligned, not certified" always visible
 - [ ] Fresh account shows one obvious next action; all empty states exist
 - [ ] WCAG 2.2 AA manual checklist complete with proof; `A11Y OK`
-- [ ] Offline page, install prompt, styled auth and error screens, Practice Lab aligned (if they were open)
+- [ ] No duplicated nav logic between `index.html` and `nav.js`; empty states on all 16 pages; install button, offline page and manifest screenshots match the new UI; Lighthouse targets met
 - [ ] 24 review screenshots + `REVIEW.md` in `docs/screens/p4/`, 12 final screenshots and the 90-second recording in `docs/screens/final/`
-- [ ] No edits outside your files; no new runtime dependencies; tests not edited to pass
+- [ ] `git diff --name-only origin/main...HEAD` lists only files from your row of the ownership table; no new runtime dependencies; tests not edited to pass
