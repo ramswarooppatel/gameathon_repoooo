@@ -104,6 +104,8 @@
 - H? · Sumit (UI) · Task 5 (Transactions & Forms UX) · Upgraded Add Transaction dialog with sticky live tax preview (CGST/SGST vs IGST split + grand total), mod-36 GSTIN validation feedback, date coherence checks, and Escape/Enter keyboard ergonomics. Upgraded Transactions table with sortable columns, client-side column visibility toggle dropdown, quick action hover buttons (Mark Paid, Remind, Invoice, Delete), floating bulk action bar with multi-row mark paid, sticky table header, and illustrated empty state. Passed selfcheck OK. · next: Task 6.
 - H? · Sumit (UI) · Fix (Transactions Toolbar Collision) · Replaced `.row.bar` with `.row.tx-toolbar` to prevent CSS collision with `.bar` (progress bar 6px height collapse), adding explicit `.tx-toolbar` flex layout and input heights. Passed selfcheck OK. · next: Task 6.
 - H? · Sumit (UI) · Task 6 (Reports & Print UX) · Implemented Monthly Net Profit Bar + Line combo chart (income/spend vertical bars with connected net profit polyline trend and dots), enhanced P&L and aging table typography with sticky headers, added print-only business header (name, GSTIN, generation date), set A4 portrait 15mm page margins, and styled high-contrast @media print output with zero dark background artifacts. Passed selfcheck OK.
+- H? · Sumit (UI) · Task 7 (PWA, Offline Shell & Performance) · Upgraded manifest.webmanifest with complete metadata, maskable icons, and desktop/mobile screenshot definitions. Created standalone offline.html fallback shell with retry actions, upgraded sw.js with precaching and navigation fallback, added apple-touch-icon and theme meta tags to index.html with CLS image sizing. Passed selfcheck OK.
+
 
 
 

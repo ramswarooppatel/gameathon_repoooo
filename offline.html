@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Offline · Oxro Labs Finance Desk</title>
+  <link rel="icon" href="public/logo.png">
+  <meta name="theme-color" content="#08110e">
+  <link rel="stylesheet" href="app/app.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--tx);
+      font-family: var(--font-base);
+    }
+    .offline-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-2xl);
+      padding: 36px 28px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: var(--sh-xl);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .offline-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--r-full);
+      background: rgba(239, 91, 91, 0.15);
+      color: var(--bad);
+      display: grid;
+      place-items: center;
+      margin-bottom: 4px;
+    }
+    .offline-icon svg {
+      width: 32px;
+      height: 32px;
+      stroke: currentColor;
+    }
+    .offline-card h2 {
+      margin: 0;
+      font-size: var(--fs-xl);
+      color: var(--tx-title);
+    }
+    .offline-card p {
+      margin: 0;
+      color: var(--mu);
+      font-size: var(--fs-sm);
+      line-height: 1.5;
+    }
+    .offline-acts {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .offline-acts button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="offline-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+    <h2>You are offline</h2>
+    <p>Oxro Labs · Finance Desk requires an internet connection to sync with cloud ledger and fetch live rates. Cached offline shell is active.</p>
+    <div class="offline-acts">
+      <button class="pri" onclick="window.location.reload()">Retry Connection</button>
+      <button onclick="window.history.back()">Go Back</button>
+    </div>
+  </div>
+</body>
+</html>
