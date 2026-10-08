@@ -157,7 +157,9 @@ function rewardCard(S, A) {
 function onboarding(S, A) {
   const steps = [
     ['Set up your business', 'Name and a valid GSTIN', !!S.profile.name && validGstin(S.profile.gstin), 'settings'],
-    ['Record your first transaction', 'Invoice, bill or expense', S.entries.length > 0, 'transactions'],
+    ['Add invoice details', 'Address and bank or UPI for your invoices', !!(S.profile.invoice_settings?.address), 'settings'],
+    ['Issue your first invoice', 'Takes about a minute', S.invoices.length > 0, 'invoices'],
+    ['Record a bill or expense', 'See your real cash position', S.entries.length > 0, 'transactions'],
     ['Set a monthly collection goal', 'Gives the goal ring a target', +S.profile.monthly_goal > 0, 'settings'],
     ['Mark a return as filed', 'GSTR-1 or GSTR-3B', S.filings.length > 0, 'compliance'],
   ];

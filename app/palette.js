@@ -2,8 +2,10 @@
 import { theme } from './extras.js';
 import { iconSvg } from './icons.js';
 import { dialog } from './views4.js';
+import { NAV } from './nav.js';
 
-const PAGES = [['today', 'Today', 'Daily routine'], ['dashboard', 'Dashboard', 'Overview and rewards'], ['invoices', 'Invoices', 'Create GST invoices, e-way bills, received invoices'], ['transactions', 'Transactions', 'Sales, bills, payroll'], ['parties', 'Customers & vendors', 'Directory'], ['approvals', 'Approvals', 'Spend waiting for an admin'], ['compliance', 'GST & Compliance', 'Returns and GST position'], ['reports', 'Reports', 'P&L, aging, GST by month'], ['planner', 'Cash planner', '60-day forecast, budgets'], ['insights', 'Insights', 'AI CFO and stress test'], ['learn', 'Learn', 'Money lessons'], ['rewards', 'Team rewards', 'Streaks and badges'], ['audit', 'Audit trail', 'Who did what and why'], ['team', 'Team & access', 'Members and roles'], ['settings', 'Settings', 'Company, appearance']];
+const DESC = { today: 'Your daily routine', dashboard: 'Cash, alerts and progress', invoices: 'Create GST invoices and e-way bills', transactions: 'Sales, bills, payroll, bank import', parties: 'Your contacts', approvals: 'Spend waiting for an admin', planner: '60-day forecast and budgets', compliance: 'GSTR-1 and GSTR-3B', standards: 'Due dates, ISO and legal readiness', reports: 'P&L, ageing, GST by month', insights: 'Ask the AI CFO', learn: 'Short money lessons', rewards: 'XP, store and who pays', audit: 'Who did what and why', team: 'Members and roles', settings: 'Company, invoices, appearance' };
+const PAGES = NAV.flatMap((g) => g.items.map(([v, l]) => [v, l, DESC[v] || '']));
 const clickByText = (re) => setTimeout(() => [...document.querySelectorAll('button')].find((b) => re.test(b.textContent))?.click(), 400);
 const ACTIONS = [
   { label: 'New invoice', hint: 'GST tax invoice or bill of supply', run: () => { location.hash = 'invoices'; clickByText(/new invoice/i); } },
@@ -55,8 +57,8 @@ function mount() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 
 // ---- single-key shortcuts (ignored while typing or when a dialog is open) ----
-const GO = { t: 'today', d: 'dashboard', i: 'invoices', x: 'transactions', p: 'parties', a: 'approvals', c: 'compliance', r: 'reports', f: 'planner', n: 'insights', l: 'learn', u: 'audit', s: 'settings' };
-const HELP = [['Ctrl K', 'Command palette'], ['?', 'This help'], ['i', 'New invoice'], ['n', 'New transaction'], ['/', 'Focus the search box'], ['t', 'Switch light / dark'], ['g then t / d / i / x', 'Go to Today / Dashboard / Invoices / Transactions'], ['g then p / a / c / r', 'Parties / Approvals / Compliance / Reports'], ['g then f / n / l / u / s', 'Planner / Insights / Learn / Audit / Settings'], ['Ctrl S', 'Invoice form: save draft'], ['Ctrl Enter', 'Invoice form: issue invoice'], ['Enter', 'Invoice form: next line'], ['Esc', 'Close dialogs']];
+const GO = { t: 'today', d: 'dashboard', i: 'invoices', x: 'transactions', p: 'parties', a: 'approvals', c: 'compliance', k: 'standards', w: 'rewards', r: 'reports', f: 'planner', n: 'insights', l: 'learn', u: 'audit', s: 'settings' };
+const HELP = [['Ctrl K', 'Command palette'], ['?', 'This help'], ['i', 'New invoice'], ['n', 'New transaction'], ['/', 'Focus the search box'], ['t', 'Switch light / dark'], ['g then t / d / i / x', 'Go to Today / Dashboard / Invoices / Transactions'], ['g then p / a / c / k / r', 'Parties / Approvals / GST returns / Compliance / Reports'], ['g then f / n / l / u / s', 'Planner / Insights / Learn / Audit / Settings'], ['Ctrl S', 'Invoice form: save draft'], ['Ctrl Enter', 'Invoice form: issue invoice'], ['Enter', 'Invoice form: next line'], ['Esc', 'Close dialogs']];
 function showHelp() {
   const rows = HELP.map(([k, d]) => { const r = document.createElement('div'); r.className = 'up'; r.innerHTML = '<kbd></kbd><span></span>'; r.firstChild.textContent = k; r.lastChild.textContent = d; return r; });
   dialog('Keyboard shortcuts', ...rows);

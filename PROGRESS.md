@@ -14,8 +14,9 @@ Rule: every schema change ships as a new file in `supabase/migrations/` and is l
 | 6 | `20261008050000_oxro_org_workspace.sql` | Company workspace: `orgs`, `org_members` (admin/finance/viewer), invite codes + email-domain lock, `parties`, entry approvals (server-enforced trigger), org-wide RLS, team leaderboard | ⬜ pending |
 | 7 | `20261008060000_workflow.sql` | `orgs.budgets`, `checklist_ticks` (weekly + month-end checklist state) | ⬜ pending |
 | 8 | `20261009000000_invoicing.sql` | `invoices` (immutable once issued), `items`, `orgs.invoice_settings`, unique GSTIN per workspace, `parties.address/pincode`, `entries.invoice_id`, `is_buyer()`, `respond_invoice()` | ⬜ pending |
+| 9 | `20261010000000_rewards_pool.sql` | `rewards`, `redemptions`, `orgs.reward_pool_monthly`; trigger enforces XP balance and the monthly pool | ⬜ pending |
 
-Apply all eight: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
+Apply all nine: `npx supabase login` (project owner) → `npx supabase link --project-ref qljazetkcycptbcpmsdl` → `npx supabase db push`.
 Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-up), add redirect URLs, put `SUPABASE_ANON_KEY` in `.env`, run `npm run sync-env`.
 
 ## Finance manager (`index.html`, `app/`)
@@ -73,6 +74,15 @@ Also: Auth → enable Email provider (turn "Confirm email" off for instant sign-
 | Received invoices: import a file, or inbox of invoices sent to your GSTIN; accept creates purchase entries with ITC, reject notifies the sender | ✅ demo; cloud path ⬜ untested until migration 8 is applied |
 | Item catalog, full JSON backup, shortcuts (`?`, `i`, `n`, `/`, `g` + letter, Ctrl+S, Ctrl+Enter) | ✅ |
 | Limits | GSTIN ownership is not verified, so a buyer inbox trusts the GSTIN a workspace claims. No credit notes, e-invoice (IRN) or TCS/TDS yet. |
+
+## Compliance, navigation, rewards funding
+| Area | Status |
+|------|--------|
+| Grouped navigation (one config in `app/nav.js` renders sidebar, phone bar and More sheet; aria-current, 40px+ targets) | ✅ |
+| Compliance page: readiness score from live checks, due-date calendar with tick-off, one-time registrations, ISO 27001/27701/9001/8601/20022, WCAG 2.2, DPDP, CGST rules mapped to what is built, evidence pack download | ✅ (aligned, not certified) |
+| Rewards store: company monthly pool, reward catalog, XP redemption, admin approval, delivery; DB-enforced balance and pool cap | ✅ demo (`scripts/rewards_test.py`); cloud ⬜ until migration 9 |
+| Who pays: points free; company funds cash rewards; partner perks planned and labelled | ✅ explained in app |
+| Limits | XP is still awarded client-side, so approval plus the pool cap bound the loss. No two-step sign-in, ISO 20022 import or e-invoice yet. |
 
 ## Seed data
 `supabase/seed.sql`: sample company data (parties, entries, recurring, filings, XP). ⬜ not run: needs your project + a created workspace. Not covered by migrations on purpose (so production stays clean).

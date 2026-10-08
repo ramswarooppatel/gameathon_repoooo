@@ -1,7 +1,7 @@
 // Service worker: instant repeat loads (stale-while-revalidate for static assets) and always-fresh pages (network-first for HTML/data).
 // Same-origin GETs only; /api/* and cross-origin calls (Supabase, Groq) are never touched.
-const CACHE = 'myf-v4';
-const SHELL = ['./', 'index.html', 'app/bundle.min.css', 'public/logo-64.png', 'public/logo-128.png', 'app/main.js'];
+const CACHE = 'myf-v5';
+const SHELL = ['./', 'index.html', 'app/bundle.min.css', 'public/logo-64.png', 'public/logo-128.png', 'app/main.js', 'app/nav.js'];
 const STATIC = /\.(?:css|js|png|webp|jpg|jpeg|svg|woff2?)$/i;
 
 self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})); });

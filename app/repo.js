@@ -1,9 +1,9 @@
 // Data layer. Cloud = Supabase (company workspace, RLS by org role). Demo = this browser only.
 import * as db from '../db/supabase.js';
 
-const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'], items: ['name'], invoices: ['number'] };
-const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks', 'invoices', 'items']);
-const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings'];
+const UNIQUE = { xp_events: ['kind', 'ref'], badges: ['code'], filings: ['type', 'period'], parties: ['kind', 'name'], checklist_ticks: ['period', 'item'], items: ['name'], invoices: ['number'], rewards: ['name'] };
+const ORG_TABLES = new Set(['entries', 'filings', 'recurring', 'parties', 'activity_log', 'checklist_ticks', 'invoices', 'items', 'rewards', 'redemptions']);
+const ORG_KEYS = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings', 'reward_pool_monthly'];
 const KEY = 'myf-demo-data';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
@@ -24,6 +24,7 @@ function demoRepo() {
       if (UNIQUE[t] && rows.some((r) => UNIQUE[t].every((k) => r[k] === row[k]))) return null;
       const full = { ...row, id: uid(), created_at: new Date().toISOString(), user_id: 'me' };
       if (t === 'entries') { full.approval = 'approved'; if (row.kind !== 'sale' && d.role !== 'admin' && row.taxable * (1 + row.gst_rate / 100) > d.org.approval_limit) full.approval = 'pending'; }
+      if (t === 'redemptions') Object.assign(full, { status: 'pending', decided_at: null });      // DB defaults
       rows.push(full); save(d); return full;
     },
     async update(t, id, patch) { const d = load(); Object.assign((d[t] || []).find((r) => r.id === id) || {}, patch); save(d); },

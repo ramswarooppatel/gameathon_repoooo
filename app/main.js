@@ -10,13 +10,15 @@ import * as V2 from './views2.js';
 import * as V3 from './views3.js';
 import { invoiceHtml, taxInvoiceHtml } from './invoice.js';
 import * as V4 from './views4.js';
+import * as V5 from './views5.js';
 import { countUp, muted, setMuted } from './fx.js';
 import { iconSvg } from './icons.js';
 import { dueMonths } from './recurring.js';
 
-const S = { invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
-const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn, invoices: V4.invoices };
-const TITLES = { invoices: 'Invoices', today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
+const S = { rewards: [], redemptions: [], spendable: 0, invoices: [], items: [], inbox: [], ticks: [], recurring: [], parties: [], members: [], allRows: [], orgLog: [], repo: null, user: null, profile: {}, entries: [], filings: [], events: [], badges: [], ledger: null, sum: null, ctx: null, xp: 0, level: null, alerts: [], filingsView: [] };
+const ALL = { ...VIEWS, parties: V2.parties, approvals: V2.approvals, reports: V2.reports, team: V2.team, styleguide: V2.styleguide, today: V3.workflow, planner: V3.planner, learn: V3.learn, invoices: V4.invoices, standards: V5.standards };
+ALL.rewards = (s, a) => V5.rewardsPage(s, a, VIEWS.rewards);
+const TITLES = { standards: 'Compliance', invoices: 'Invoices', today: 'Today', planner: 'Cash planner', learn: 'Learn', dashboard: 'Dashboard', transactions: 'Transactions', parties: 'Customers & vendors', approvals: 'Approvals', compliance: 'GST & Compliance', reports: 'Reports', insights: 'Insights', rewards: 'Team rewards', audit: 'Audit trail', team: 'Team & access', settings: 'Settings', styleguide: 'Style guide' };
 let view = location.hash.slice(1) || 'today', booted = false, session = null;
 
 // Role permissions. viewer: read · finance: write · admin: everything.
@@ -30,6 +32,7 @@ function compute() {
   S.sum = summarize(S.entries.filter((e) => (e.approval || 'approved') === 'approved'), S.profile, t);
   S.xp = S.events.reduce((a, e) => a + e.xp, 0);
   S.level = levelOf(S.xp);
+  S.spendable = S.xp - S.redemptions.filter((x) => x.user_id === S.repo.userId && x.status !== 'rejected').reduce((a, x) => a + x.xp_cost, 0);
   const cur = t.slice(0, 7), first = S.entries.map((e) => e.date.slice(0, 7)).sort()[0] || cur;
   S.filingsView = [];
   for (let i = 0; i < 4; i++) {
@@ -50,7 +53,7 @@ function compute() {
 
 async function load() {
   const r = S.repo;
-  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks, S.invoices, S.items, S.inbox] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks'), r.list('invoices', { col: 'date', asc: false }), r.list('items', { col: 'name', asc: true }), r.inbox().catch(() => [])]);
+  [S.entries, S.filings, S.events, S.badges, S.recurring, S.parties, S.ticks, S.invoices, S.items, S.inbox, S.rewards, S.redemptions] = await Promise.all([r.list('entries', { col: 'date', asc: false }), r.list('filings'), r.list('xp_events'), r.list('badges'), r.list('recurring'), r.list('parties', { col: 'name', asc: true }), r.list('checklist_ticks'), r.list('invoices', { col: 'date', asc: false }), r.list('items', { col: 'name', asc: true }), r.inbox().catch(() => []), r.list('rewards', { col: 'xp_cost', asc: true }), r.list('redemptions', { col: 'created_at', asc: false })]);
   S.profile = await r.getProfile();
   S.members = await r.members().catch(() => []);
   const log = await r.list('activity_log', { col: 'n', asc: true });
@@ -240,7 +243,44 @@ const A = {
     const it = S.items.find((x) => x.id === id); await S.repo.remove('items', id); S.items = S.items.filter((x) => x.id !== id);
     await audit('item.delete', id, { name: it.name }, `Removed "${it.name}" from the item catalog.`); await refresh();
   },
+  async saveReward(r) {
+    if (!need('admin')) return;
+    const row = await S.repo.insert('rewards', { ...r, active: true }); if (!row) return toast('Already exists', r.name, 'bad');
+    S.rewards.push(row); S.rewards.sort((a, b) => a.xp_cost - b.xp_cost);
+    await audit('reward.add', row.id, { name: r.name, xp: r.xp_cost, inr: r.cost_inr }, `Added reward "${r.name}" (${r.xp_cost} XP, company cost ${inr(r.cost_inr)}).`); await refresh();
+  },
+  async toggleReward(id) {
+    if (!need('admin')) return;
+    const r = S.rewards.find((x) => x.id === id); await S.repo.update('rewards', id, { active: !r.active }); r.active = !r.active;
+    await audit('reward.toggle', id, { name: r.name, active: r.active }, `${r.active ? 'Enabled' : 'Paused'} reward "${r.name}".`); await refresh();
+  },
+  async removeReward(id) {
+    if (!need('admin')) return;
+    const r = S.rewards.find((x) => x.id === id); await S.repo.remove('rewards', id); S.rewards = S.rewards.filter((x) => x.id !== id);
+    await audit('reward.delete', id, { name: r.name }, `Removed reward "${r.name}".`); await refresh();
+  },
+  async setPool(n) {
+    if (!need('admin')) return;
+    const v = Math.max(0, Math.round(+n || 0)); await S.repo.saveProfile({ reward_pool_monthly: v }); S.profile = { ...S.profile, reward_pool_monthly: v };
+    await audit('reward.pool', null, { pool: v }, `Set the monthly reward pool to ${inr(v)}.`); toast('Reward pool saved', `${inr(v)} per month`); await refresh();
+  },
+  async redeem(rewardId) {
+    const rw = S.rewards.find((x) => x.id === rewardId), m = today().slice(0, 7);
+    if (!rw || !rw.active) return toast('Not available', 'This reward is paused.', 'bad');
+    if (S.spendable < rw.xp_cost) return toast('Not enough XP', `You need ${rw.xp_cost - S.spendable} more XP.`, 'bad');
+    const used = S.redemptions.filter((x) => x.status !== 'rejected' && x.created_at.slice(0, 7) === m).reduce((a, x) => a + x.cost_inr, 0);
+    if (used + rw.cost_inr > (+S.profile.reward_pool_monthly || 0)) return toast('Pool used up', 'The company reward pool for this month is finished. Try next month.', 'bad');
+    let row; try { row = await S.repo.insert('redemptions', { reward_id: rw.id, reward_name: rw.name, member_name: who(), xp_cost: rw.xp_cost, cost_inr: rw.cost_inr }); } catch (x) { return toast('Could not redeem', x.message, 'bad'); }
+    S.redemptions.unshift(row); await audit('reward.redeem', row.id, { reward: rw.name, xp: rw.xp_cost }, `Requested reward "${rw.name}" for ${rw.xp_cost} XP.`);
+    toast('Requested', 'An admin will approve it. Your XP is held until then.'); await refresh();
+  },
+  async decideRedemption(id, status, note = '') {
+    if (!need('admin')) return;
+    const r = S.redemptions.find((x) => x.id === id); await S.repo.update('redemptions', id, { status, note: note || null }); Object.assign(r, { status, note: note || null, decided_at: new Date().toISOString() });
+    await audit('reward.' + status, id, { reward: r.reward_name, member: r.member_name }, `Marked reward "${r.reward_name}" for ${r.member_name || 'a member'} as ${status}${note ? `: ${note}` : ''}.`); await refresh();
+  },
   backup() {
+    localStorage.setItem('myf-last-backup', today());
     const data = { exported_at: new Date().toISOString(), company: S.profile.name, profile: S.profile, entries: S.entries, invoices: S.invoices, items: S.items, parties: S.parties, filings: S.filings, recurring: S.recurring, audit: S.orgLog };
     h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })), download: `backup-${today()}.json` }).click();
     audit('backup.export', null, { entries: S.entries.length, invoices: S.invoices.length }, 'Downloaded a full JSON backup.');
@@ -306,7 +346,7 @@ const A = {
     await award('alert_resolved', `file:${type}:${period}`, XP.alert_resolved, 'Compliance alert resolved'); await refresh();
   },
   async saveProfile(p) {
-    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings'];
+    const orgKeys = ['name', 'gstin', 'opening_balance', 'monthly_goal', 'approval_limit', 'budgets', 'invoice_settings', 'reward_pool_monthly'];
     if (!S.can('admin')) { for (const k of orgKeys) delete p[k]; }
     else if (Object.keys(p).some((k) => orgKeys.includes(k)) === false) { /* personal only */ }
     await S.repo.saveProfile({ ...p, health: S.sum.health }); S.profile = { ...S.profile, ...p };
