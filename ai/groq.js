@@ -1,7 +1,7 @@
 // Client for /api/groq. Every call has a fallback so the game never depends on the network.
-const SYS = "You are FinCrew's finance explainer for an Indian small business. Use only the facts provided. Plain English, max 60 words, include ₹ numbers, never invent tax rules, end with the next action.";
+const SYS = "You are Mind Your Funds' finance explainer for an Indian small business. Use only the facts provided. Plain English, max 60 words, include ₹ numbers, never invent tax rules, end with the next action.";
 
-async function ask(messages, fallback) {
+export async function ask(messages, fallback) {
   try {
     const r = await fetch('/api/groq', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages }), signal: AbortSignal.timeout(9000) });
     if (!r.ok) return fallback;

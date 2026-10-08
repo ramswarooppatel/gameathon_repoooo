@@ -14,8 +14,8 @@ npx serve .                 # open http://localhost:3000  (works fully offline, 
 Never put the `service_role` key anywhere in this repo.
 
 ## Business workspace (real use)
-`workspace.html`: invoices/bills, GST (CGST/SGST/IGST + ITC), alerts, cash, CSV export. Works offline (browser storage). For cloud sync:
-1. Apply BOTH migrations in `supabase/migrations/` (`npx supabase db push` after `supabase link`).
+The main app is `index.html` (`app/`): sign in, transactions, GST & compliance, rewards, audit trail. All data lives in Supabase; demo mode keeps it in the browser. Tracker: `PROGRESS.md`.
+1. Apply ALL migrations in `supabase/migrations/` (`npx supabase db push` after `supabase link`).
 2. Auth -> URL Configuration: add your site URL (and http://localhost:3000) to Redirect URLs; Email provider enabled.
 3. Put `SUPABASE_ANON_KEY` in `.env`, run `npm run sync-env`.
 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oxro Labs · Finance Desk</title>
+<link rel="icon" href="public/logo.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#08110e">
+<link rel="stylesheet" href="app/app.css"></head>
+<body>
+<div id="app" hidden>
+  <aside>
+    <div class="brand"><span class="logo"><img src="public/logo.png" alt="Mind Your Funds"></span><div><b id="org">Oxro Labs</b><small>Finance Desk · by Mind Your Funds</small></div></div>
+    <nav>
+      <a href="#dashboard" data-v="dashboard">Dashboard <em id="nav-n" hidden></em></a>
+      <a href="#transactions" data-v="transactions">Transactions</a>
+      <a href="#parties" data-v="parties">Customers &amp; vendors</a>
+      <a href="#approvals" data-v="approvals">Approvals <em id="nav-ap" hidden></em></a>
+      <a href="#compliance" data-v="compliance">GST &amp; Compliance</a>
+      <a href="#reports" data-v="reports">Reports</a>
+      <a href="#insights" data-v="insights">Insights</a>
+      <a href="#rewards" data-v="rewards">Team rewards</a>
+      <a href="#audit" data-v="audit">Audit trail</a>
+      <a href="#team" data-v="team" data-role="admin">Team &amp; access</a>
+      <a href="#settings" data-v="settings">Settings</a>
+      <a href="lab.html" class="lab">Practice lab ↗</a>
+    </nav>
+  </aside>
+  <div class="content">
+    <div class="top">
+      <div class="lv"><div class="lvrow"><b id="lv-name">Lv 1</b><span id="lv-xp">0 XP</span></div><i class="bar"><u id="lv-bar"></u></i></div>
+      <span class="streak" id="streak"></span><span id="mode" class="pill"></span>
+      <span class="sp"></span><button id="snd"></button><span id="who" class="mu"></span><button id="signout">Sign out</button>
+    </div>
+    <main id="view"></main>
+  </div>
+</div>
+<div id="auth" class="overlay"><div class="modal"></div></div>
+<div id="toasts"></div>
+<script type="module" src="app/main.js"></script>
+<script>if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js");</script>
+</body></html>

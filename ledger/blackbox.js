@@ -2,15 +2,17 @@
 export const GENESIS = '0'.repeat(64);
 
 const canon = (o) => JSON.stringify(o, Object.keys(o).sort());
+// jsonb reorders keys, so hash a key-sorted copy of nested values.
+const stable = (v) => (v && typeof v === 'object' ? (Array.isArray(v) ? v.map(stable) : Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])]))) : v);
 async function sha(s) {
   const b = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
-const hashOf = (prev, e) => sha(prev + canon({ n: e.n, day: e.day, agent: e.agent, cardId: e.cardId, decision: JSON.stringify(e.decision), why: e.why }));
+const hashOf = (prev, e) => sha(prev + canon({ n: e.n, day: e.day, agent: e.agent, cardId: e.cardId, decision: JSON.stringify(stable(e.decision)), why: e.why }));
 
-export function createLedger(storageKey = null) {
+export function createLedger(storageKey = null, initial = null) {
   const ls = storageKey && globalThis.localStorage;
-  let entries = ls ? JSON.parse(ls.getItem(storageKey) || '[]') : [];
+  let entries = initial ?? (ls ? JSON.parse(ls.getItem(storageKey) || '[]') : []);
   const save = () => ls && ls.setItem(storageKey, JSON.stringify(entries));
   return {
     get entries() { return entries; },

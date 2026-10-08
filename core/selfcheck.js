@@ -34,6 +34,31 @@ assert.ok(W.alerts.some((a) => /overdue/.test(a.text)) && W.alerts.some((a) => /
 assert.equal(nextDom('2026-10-21', 20), '2026-11-20');
 assert.equal(toCsv(W.rows).split(String.fromCharCode(10)).length, 4);
 
+// Bank import + recurring
+import { parseBank, matchBank, parseDate } from '../app/bank.js';
+import { dueMonths } from '../app/recurring.js';
+assert.equal(parseDate('08/10/2026'), '2026-10-08');
+const csv = ['Date,Narration,Debit,Credit,Balance', '05-10-2026,NEFT Sharma Traders,,11800.00,1', '06/10/2026,"Apex, Machinery",4720.00,,2', '07-10-2026,Unknown,100,,3'].join(String.fromCharCode(10));
+const bank = parseBank(csv);
+assert.deepEqual(bank.map((r) => r.amount), [11800, -4720, -100]);
+const BM = matchBank(bank, W.rows.map((r) => ({ ...r })).concat([{ id: 9, kind: 'sale', party: 'Sharma Traders', total: 11800, due_date: '2026-10-05', paid_date: null }]));
+assert.equal(BM[0].entry?.kind, 'sale');
+assert.equal(BM[2].entry, null);
+assert.deepEqual(dueMonths({ day_of_month: 5, start_month: '2026-08', last_generated: null }, '2026-10-08').map((x) => x.date), ['2026-08-05', '2026-09-05', '2026-10-05']);
+assert.deepEqual(dueMonths({ day_of_month: 25, start_month: '2026-10', last_generated: null }, '2026-10-08'), []);
+assert.deepEqual(dueMonths({ day_of_month: 5, start_month: '2026-08', last_generated: '2026-10' }, '2026-10-08'), []);
+
+// Reports + invoice
+import { pnl, aging, topParties } from '../app/reports.js';
+import { invoiceHtml } from '../app/invoice.js';
+const P = pnl(W.rows, ['2026-10']);
+assert.equal(P[0].income, 10000); assert.equal(P[0].spend, 5000); assert.equal(P[0].net, 5000);
+const AG = aging(W.rows, '2026-10-20', 'in');
+assert.equal(AG.find((b) => b.label === '1–30 days').amount, 11800);
+assert.equal(topParties(W.rows, 'out')[0].party, 'B');
+const html = invoiceHtml({ ...W.rows[0], party: '<script>x</script>' }, { name: 'Oxro Labs', gstin: null }, null);
+assert.ok(html.includes('&lt;script&gt;') && !html.includes('<script>x'));
+
 // Determinism + Ghost Twin: crew (always takes recommended option) must beat a passive ghost.
 function run(crew, policy) {
   const g = createGame(42, { crew });
