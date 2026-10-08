@@ -1,3 +1,5 @@
+> The exact running order, clicks, words and rehearsal checklist are in [PRESENTATION.md](PRESENTATION.md). This file keeps the background on how insights are generated.
+
 # Pitch guide: Mind Your Funds (Oxro Labs Finance Desk)
 
 ## How the insights are generated (say this plainly)
